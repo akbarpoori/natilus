@@ -1,0 +1,481 @@
+# Natilus — translation template.
+# Copyright (C) 2026 Meysam Akbarpoori
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Natilus 2.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/akbarpoori/ai-content-publishing-agent\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: fa\n"
+"POT-Creation-Date: 2026-11-15\n"
+
+# The plugin ships bilingual by default (Persian UI + a built-in English
+# dictionary via the "زبان رابط کاربری" setting). This template lists the
+# visible chrome strings so translators can add MORE languages the standard
+# way: msgid is the Persian source string; translate it to your language.
+# Until a translation exists the Persian original shows — a partial
+# translation can never blank out a label.
+
+msgid "Natilus"
+msgstr ""
+
+msgid "تنظیمات"
+msgstr ""
+
+msgid "داشبورد مصرف"
+msgstr ""
+
+msgid "تقویم انتشار"
+msgstr ""
+
+msgid "گزارش‌ها و سلامت"
+msgstr ""
+
+msgid "راه‌اندازی سریع"
+msgstr ""
+
+msgid "اسکیل‌ها"
+msgstr ""
+
+msgid "کتابخانهٔ پرامپت"
+msgstr ""
+
+msgid "انبوه"
+msgstr ""
+
+msgid "زبان رابط کاربری"
+msgstr ""
+
+msgid "فارسی"
+msgstr ""
+
+msgid "انگلیسی"
+msgstr ""
+
+msgid "ذخیرهٔ تنظیمات"
+msgstr ""
+
+msgid "بستن"
+msgstr ""
+
+msgid "انصراف"
+msgstr ""
+
+msgid "تأیید"
+msgstr ""
+
+msgid "اعمال"
+msgstr ""
+
+msgid "در حال انجام…"
+msgstr ""
+
+msgid "آماده"
+msgstr ""
+
+msgid "در حال کار"
+msgstr ""
+
+msgid "محتوا"
+msgstr ""
+
+msgid "رسانه"
+msgstr ""
+
+msgid "لینک‌ها و تیترها"
+msgstr ""
+
+msgid "کتابخانه"
+msgstr ""
+
+msgid "تاریخچه"
+msgstr ""
+
+msgid "انتشار"
+msgstr ""
+
+msgid "ارائه‌دهنده تنظیم نشده"
+msgstr ""
+
+msgid "جمع‌کردن / باز‌کردن"
+msgstr ""
+
+msgid "چک‌لیست پیش از انتشار"
+msgstr ""
+
+msgid "بررسی پیش از انتشار"
+msgstr ""
+
+msgid "نتیجهٔ بررسی"
+msgstr ""
+
+msgid "تصویر شاخص"
+msgstr ""
+
+msgid "دسته‌بندی"
+msgstr ""
+
+msgid "برچسب‌ها"
+msgstr ""
+
+msgid "نامک (slug)"
+msgstr ""
+
+msgid "توضیح متای سئو"
+msgstr ""
+
+msgid "متن جایگزین تصاویر"
+msgstr ""
+
+msgid "لینک داخلی"
+msgstr ""
+
+msgid "این مورد بررسی نشد (نوع نوشته)."
+msgstr ""
+
+msgid "پیشنهاد دسته و برچسب"
+msgstr ""
+
+msgid "دریافت پیشنهاد"
+msgstr ""
+
+msgid "پیشنهاد نامک انگلیسی"
+msgstr ""
+
+msgid "پیشنهاد نامک"
+msgstr ""
+
+msgid "اعمال انتخاب‌ها روی نوشته"
+msgstr ""
+
+msgid "پیشنهادی از هوش مصنوعی اعمال نشد — انتخاب و کلیک شما الزامی است."
+msgstr ""
+
+msgid "فهرست دسته‌ها و برچسب‌های موجود سایت:"
+msgstr ""
+
+msgid "تصویر شاخص ندارد."
+msgstr ""
+
+msgid "دسته‌بندی انتخاب نشده است."
+msgstr ""
+
+msgid "نامک تکراری یا خالی است."
+msgstr ""
+
+msgid "توضیح متای سئو خالی است."
+msgstr ""
+
+msgid "برخی تصاویر متن جایگزین ندارند."
+msgstr ""
+
+msgid "هیچ لینک داخلی به مقالات دیگر نیست."
+msgstr ""
+
+msgid "بررسی‌های فنی همه سبزند."
+msgstr ""
+
+msgid "امروز"
+msgstr ""
+
+msgid "ماه قبل"
+msgstr ""
+
+msgid "ماه بعد"
+msgstr ""
+
+msgid "صف انتشار"
+msgstr ""
+
+msgid "صف در حال اجراست."
+msgstr ""
+
+msgid "صف متوقف است."
+msgstr ""
+
+msgid "توقف صف"
+msgstr ""
+
+msgid "ادامهٔ صف"
+msgstr ""
+
+msgid "انتشار آیتم بعدی همین حالا"
+msgstr ""
+
+msgid "جابه‌جایی آیتم‌ها"
+msgstr ""
+
+msgid "بالا"
+msgstr ""
+
+msgid "پایین"
+msgstr ""
+
+msgid "موردی در این ماه در صف نیست."
+msgstr ""
+
+msgid "برای جابه‌جایی، آیتم را بکشید و روی روز دیگر رها کنید."
+msgstr ""
+
+msgid "هیچ آیتمی برای انتشار در صف نیست."
+msgstr ""
+
+msgid "آیتم بعدی منتشر شد."
+msgstr ""
+
+msgid "زمان جدید ذخیره شد."
+msgstr ""
+
+msgid "گزارش فرصت‌های لینک داخلی"
+msgstr ""
+
+msgid "مقالات بدون لینک داخلی"
+msgstr ""
+
+msgid "روی این مقاله لینک داخلی ندارد."
+msgstr ""
+
+msgid "تاریخچهٔ سلامت زنجیره"
+msgstr ""
+
+msgid "رویدادی ثبت نشده است."
+msgstr ""
+
+msgid "خلاصهٔ هفتگی ایمیلی"
+msgstr ""
+
+msgid "هشدار مصرف غیرعادی"
+msgstr ""
+
+msgid "این هفته"
+msgstr ""
+
+msgid "راه‌اندازی سه‌مرحله‌ای"
+msgstr ""
+
+msgid "قدم ۱ از ۳ — انتخاب ارائه‌دهنده"
+msgstr ""
+
+msgid "قدم ۲ از ۳ — کلید و مدل"
+msgstr ""
+
+msgid "قدم ۳ از ۳ — تست اتصال"
+msgstr ""
+
+msgid "برو به قدم بعد"
+msgstr ""
+
+msgid "پایان راه‌اندازی"
+msgstr ""
+
+msgid "راه‌اندازی کامل شد."
+msgstr ""
+
+msgid "آدرس پایه (Base URL)"
+msgstr ""
+
+msgid "کلید API"
+msgstr ""
+
+msgid "مدل"
+msgstr ""
+
+msgid "تست اتصال"
+msgstr ""
+
+msgid "اتصال برقرار است."
+msgstr ""
+
+msgid "شروع دوباره"
+msgstr ""
+
+msgid "انتقال تنظیمات"
+msgstr ""
+
+msgid "بستهٔ قابل حمل تنظیمات"
+msgstr ""
+
+msgid "دریافت بستهٔ JSON"
+msgstr ""
+
+msgid "ورود بسته"
+msgstr ""
+
+msgid "فایل JSON بسته را اینجا بچسبانید یا انتخاب کنید."
+msgstr ""
+
+msgid "ورود بستهٔ تنظیمات"
+msgstr ""
+
+msgid "کلیدهای API پیش‌فرض در بسته نیستند."
+msgstr ""
+
+msgid "کلیدها را هم در بسته بگذار (هشدار: متن آشکار)."
+msgstr ""
+
+msgid "بستهٔ تنظیمات با موفقیت وارد شد."
+msgstr ""
+
+msgid "بسته نامعتبر است — ساختار JSON خوانده نشد."
+msgstr ""
+
+msgid "اتصال به ارائه‌دهنده"
+msgstr ""
+
+msgid "زنجیرهٔ مدل‌ها و توکن"
+msgstr ""
+
+msgid "ویژگی‌ها"
+msgstr ""
+
+msgid "دسترسی‌ها"
+msgstr ""
+
+msgid "مسیریابی، بودجه و زمان‌بندی"
+msgstr ""
+
+msgid "مشاهده"
+msgstr ""
+
+msgid "ویرایش"
+msgstr ""
+
+msgid "عنوان"
+msgstr ""
+
+msgid "تاریخ"
+msgstr ""
+
+msgid "وضعیت"
+msgstr ""
+
+msgid "پیش‌نویس"
+msgstr ""
+
+msgid "منتشرشده"
+msgstr ""
+
+msgid "زمان‌بندی‌شده"
+msgstr ""
+
+msgid "در صف"
+msgstr ""
+
+msgid "روتیتر"
+msgstr ""
+
+msgid "زیرتیتر"
+msgstr ""
+
+msgid "روتیتر — سرتیتر کوچک بالای عنوان (اختیاری)"
+msgstr ""
+
+msgid "زیرتیتر — توضیح کوتاه زیر عنوان (اختیاری)"
+msgstr ""
+
+msgid "ویرایش این نوشته با پرامپت (اختیاری — هوش مصنوعی)"
+msgstr ""
+
+msgid "دستور ویرایش (پرامپت)"
+msgstr ""
+
+msgid "مثلاً: پاراگراف آخر را کوتاه کن — یا: تیتر دوم را جذاب‌تر بنویس"
+msgstr ""
+
+msgid "ویرایش کن (پیش‌نمایش)"
+msgstr ""
+
+msgid "متن ویرایش‌شده"
+msgstr ""
+
+msgid "متن فعلی"
+msgstr ""
+
+msgid "اعمال روی نوشته"
+msgstr ""
+
+msgid "توکن"
+msgstr ""
+
+msgid "فقط دستور ویرایش را بنویسید — متن نوشته خودکار از خود نوشتهٔ ذخیره‌شده خوانده می‌شود؛ نتیجه قبل از اعمال پیش‌نمایش می‌شود و قبل از اعمال نسخهٔ پشتیبان گرفته می‌شود."
+msgstr ""
+
+msgid "ویرایش با پرامپت به یک ارائه‌دهندهٔ هوش مصنوعی نیاز دارد — هر سرویس سازگار با OpenAI (یا سرور محلی مثل Ollama/LM Studio) در «تنظیمات Natilus» کافی است. انتشار محتوا بدون آن هم کامل کار می‌کند."
+msgstr ""
+
+msgid "ابتدا یک ارائه‌دهنده در «تنظیمات Natilus» پیکربندی کنید."
+msgstr ""
+
+msgid "ویرایش با پرامپت روی نوشتهٔ ذخیره‌شده کار می‌کند — ابتدا نوشته را ذخیره کنید."
+msgstr ""
+
+msgid "ابتدا دستور ویرایش را در باکس پرامپت بنویسید."
+msgstr ""
+
+msgid "دستور ویرایش را در باکس پرامپت بنویسید — مثلاً: پاراگراف آخر را کوتاه کن."
+msgstr ""
+
+msgid "در حال ویرایش با پرامپت…"
+msgstr ""
+
+msgid "ویرایش آمادهٔ بررسی است."
+msgstr ""
+
+msgid "ویرایش آماده شد — پیش‌نمایش را بررسی و در صورت تأیید اعمال کنید."
+msgstr ""
+
+msgid "خطا در ویرایش."
+msgstr ""
+
+msgid "ویرایش ناموفق بود."
+msgstr ""
+
+msgid "مدل پاسخ قابل استفاده‌ای برنگرداند — پرامپت را دقیق‌تر بنویسید یا مدل دیگری در تنظیمات انتخاب کنید."
+msgstr ""
+
+msgid "محتوای این نوشته خالی است — چیزی برای ویرایش وجود ندارد."
+msgstr ""
+
+msgid "این نوشته برای ویرایش با پرامپت بیش از حد طولانی است — ویرایش را دستی انجام دهید."
+msgstr ""
+
+msgid "ابتدا ویرایش را اجرا و پیش‌نمایش را ببینید."
+msgstr ""
+
+msgid "ویرایش روی نوشته اعمال شود؟ قبل از اعمال نسخهٔ پشتیبان گرفته می‌شود و از پایین ویجت قابل بازگردانی است."
+msgstr ""
+
+msgid "در حال اعمال ویرایش…"
+msgstr ""
+
+msgid "ویرایش اعمال شد."
+msgstr ""
+
+msgid "ویرایش روی نوشته اعمال شد — صفحه تازه‌سازی می‌شود…"
+msgstr ""
+
+msgid "خطا در اعمال ویرایش."
+msgstr ""
+
+msgid "اعمال ویرایش ناموفق بود."
+msgstr ""
+
+msgid "محتوای ویرایش‌شده‌ای برای اعمال ارسال نشده است."
+msgstr ""
+
+msgid "محتوای ویرایش‌شده پس از پالایش خالی شد — چیزی اعمال نشد."
+msgstr ""
+
+msgid "ذخیرهٔ ویرایش ناموفق بود: "
+msgstr ""
+
+msgid "پیش‌نمایش کنار گذاشته شد — نوشته دست‌نخورده است."
+msgstr ""
+
+msgid "ویرایش با پرامپت در تنظیمات خاموش شده است."
+msgstr ""
+
+msgid "ویرایش نوشتهٔ موجود با پرامپت (هوش مصنوعی — فقط با کلیک شما و بعد از پیش‌نمایش اعمال می‌شود)"
+msgstr ""
