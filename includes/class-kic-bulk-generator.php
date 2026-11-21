@@ -118,6 +118,38 @@ final class KIC_Bulk_Generator {
                 }
                 check_admin_referer( 'kic_bulk_publish' );
 
+                /* PHP silently drops a POST body larger than post_max_size —
+                 * the textarea would look "empty" even though the author pasted
+                 * everything. Say so explicitly instead of reporting no text. */
+                $content_length = isset( $_SERVER['CONTENT_LENGTH'] ) ? (int) $_SERVER['CONTENT_LENGTH'] : 0;
+                $post_max       = 0;
+                $raw_ini        = ini_get( 'post_max_size' );
+                if ( is_string( $raw_ini ) && '' !== trim( $raw_ini ) && '-1' !== trim( $raw_ini ) ) {
+                        $post_max = (float) $raw_ini;
+                        $unit     = strtolower( substr( trim( $raw_ini ), -1 ) );
+                        if ( 'g' === $unit ) {
+                                $post_max *= 1024;
+                        }
+                        if ( 'g' === $unit || 'm' === $unit ) {
+                                $post_max *= 1024;
+                        }
+                        if ( 'g' === $unit || 'm' === $unit || 'k' === $unit ) {
+                                $post_max *= 1024;
+                        }
+                        $post_max = (int) $post_max;
+                }
+                if ( $content_length > 0 && $post_max > 0 && $content_length > $post_max ) {
+                        wp_die(
+                                esc_html(
+                                        sprintf(
+                                                'حجم متن ارسالی (%1$s) از سقف مجاز سرور (%2$s) بزرگ‌تر است — متن کامل دریافت نشد. لطفاً متن را کوتاه‌تر کنید یا از پشتیبانی هاست بخواهید post_max_size را افزایش دهد.',
+                                                size_format( $content_length ),
+                                                size_format( $post_max )
+                                        )
+                                )
+                        );
+                }
+
                 $raw     = isset( $_POST['kic_bulk_contents'] ) ? (string) wp_unslash( $_POST['kic_bulk_contents'] ) : '';
                 $status  = ( isset( $_POST['kic_bulk_status'] ) && 'publish' === (string) wp_unslash( $_POST['kic_bulk_status'] ) ) ? 'publish' : 'draft';
                 $use_drip = ! empty( $_POST['kic_bulk_drip'] );

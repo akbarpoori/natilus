@@ -4,7 +4,7 @@ Tags: publishing, content, elementor, seo, gutenberg, classic-editor, bulk, work
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2.3.0
+Stable tag: 2.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,14 @@ Settings → "Transfer settings" → download a portable JSON bundle (API keys e
 Use the WP-CLI commands: `wp kic queue --action=run` and `wp kic tokens --days=7`.
 
 == Changelog ==
+
+= 2.4.0 =
+* THE GENERATION RELEASE — optional prompt-based article writing as a clear 3-step flow: (۱) give a topic/instruction (or paste raw notes) → (۲) review the laid-out preview (title, kicker, subtitle, body, SEO) → (۳) confirm and continue to the normal publish button. The configured provider chain drafts a complete publication-ready article straight into the SAME content box — for first publishes and brand-new drafts alike. Nothing is written until you confirm AND click «انتشار محتوا».
+* NEW — «تولید تصویر با هوش مصنوعی» checkbox: asks the provider for a cover image via the OpenAI-compatible /images/generations endpoint and appends the URL to the media list, so it flows through the normal sideload → media library → gallery/featured-image pipeline on publish. Image model configurable in Settings → Features (image_model).
+* NEW — kic_generate / kic_generate_image AJAX endpoints: nonce + capability + per-user rate limit + budget guard + prompt/output length caps + wp_kses_post sanitizing; generation output is preview-only (read_only) and never auto-published.
+* NEW — Settings → Features toggles: generate_enabled (on by default) and image_model override.
+* FIX — pasted content larger than PHP's post_max_size was silently dropped by PHP, so a complete article misleadingly reported «no content». Both the compose widget and the bulk publisher now detect the oversize body and show an explicit post_max_size error instead.
+* The ready-content path is unchanged: with no prompt, your text is still published exactly as pasted.
 
 = 2.3.0 =
 * THE PROMPT-EDIT RELEASE — optional prompt-based AI edit of the CURRENT post. You write ONLY the instruction (e.g. «پاراگراف آخر را کوتاه کن») in the edit box; the server itself loads the saved post content, the model applies your instruction to it, and the result is PREVIEWED before anything is written. You never re-paste the article.

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Natilus
  * Description:       Natilus publishes your ready-made content to WordPress exactly as written — kicker/subtitle synced with your theme, media import, galleries, featured image, Elementor/WPBakery/Gutenberg/Classic layouts, SEO meta, drip queue, rollback. AI helpers optional. https://github.com/akbarpoori/natilus | انتشارگر محتوای آماده برای وردپرس
- * Version:           2.3.0
+ * Version:           2.4.0
  * Requires at least: 5.8
  * Requires PHP:      7.0
  * Author:            Meysam Akbarpoori
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         exit;
 }
 
-define( 'KIC_VERSION', '2.3.0' );
+define( 'KIC_VERSION', '2.4.0' );
 define( 'KIC_FILE', __FILE__ );
 define( 'KIC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KIC_URL', plugin_dir_url( __FILE__ ) );
@@ -47,6 +47,7 @@ $kic_includes = array(
         'class-kic-api-client.php',        // chat (chain failover) for the OPTIONAL suggestion helpers only.
         'class-kic-router.php',            // cheap-model routing for light tasks.
         'class-kic-ai-editor.php',         // v2.3 — OPTIONAL prompt-based edit of the CURRENT post (preview → apply).
+        'class-kic-generator.php',         // v2.4 — OPTIONAL prompt-based article generation + image generation (preview only).
         'class-kic-token-estimator.php',   // practical token estimates, guide data, auto-extend.
         'class-kic-budget-guard.php',       // monthly USD budget cap + email alerts.
         'class-kic-drip-scheduler.php',     // gradual WP-Cron publishing of bulk drafts.
@@ -204,6 +205,9 @@ if ( ! function_exists( 'kic_default_settings' ) ) {
                         'theme_sync_subtitle_custom' => '',
                         // v2.3.0 — OPTIONAL prompt-based edit of the current post.
                         'ai_edit_enabled'            => 1,
+                        // v2.4.0 — OPTIONAL prompt-based article + image generation.
+                        'generate_enabled'           => 1,
+                        'image_model'                => '',
                 );
         }
 }
@@ -326,6 +330,7 @@ if ( ! class_exists( 'KIC_Plugin' ) ) {
                                 'KIC_API_Client',
                                 'KIC_Router',
                                 'KIC_AI_Editor',
+                                'KIC_Generator',
                                 'KIC_Token_Estimator',
                                 'KIC_Budget_Guard',
                                 'KIC_Drip_Scheduler',

@@ -551,7 +551,7 @@
 
                 panel.appendChild(h('div', {
                         class: 'kic-notice',
-                        text: T('محتوای آمادهٔ خود را بچسبانید و منتشر کنید — Natilus چیزی نمی‌نویسد، بازنویسی نمی‌کند و نه تعداد کلمه می‌پرسد و نه ارائه‌دهنده‌ای لازم دارد.')
+                        text: T('محتوای آمادهٔ خود را بچسبانید و منتشر کنید — یا در بخش «تولید با پرامپت» موضوع را بنویسید تا پیش‌نویس هوش مصنوعی در همین باکس آماده شود. بدون پرامپت، متن شما دقیقاً همان‌گونه منتشر می‌شود.')
                 }));
 
                 /* Builder mode — where/how the content lands. */
@@ -657,6 +657,11 @@
                 });
                 var rawField = field('kic-f-raw', 'محتوای کامل نوشته', els.raw);
 
+                /* v2.4 — optional prompt-based generation: fills the SAME
+                 * raw box + metadata fields; the user reviews then publishes
+                 * through the normal button. Nothing is auto-published. */
+                var genBox = buildGenerateSection();
+
                 /* Optional SEO quick fields. */
                 els.seoQuickTitle = h('input', {
                         type: 'text',
@@ -719,6 +724,9 @@
                 }
                 panel.appendChild(titleStatusGrid);
                 panel.appendChild(els.newPostBox);
+                if (genBox) {
+                        panel.appendChild(genBox);
+                }
                 panel.appendChild(rawField);
                 panel.appendChild(seoBox);
 
@@ -776,8 +784,12 @@
                 }
                 var content = els.raw ? els.raw.value : '';
                 if (!content.trim()) {
-                        toast('محتوای نوشته خالی است — چیزی برای انتشار ارسال نشده است.', 'info');
-                        els.raw.focus();
+                        if (els.genPrompt && (els.genPrompt.value || '').trim()) {
+                                toast('پرامپت نوشته‌اید اما هنوز تولید نشده — روی «چینش با هوش مصنوعی» بزنید یا متن را در باکس محتوا بچسبانید.', 'info');
+                        } else {
+                                toast('محتوای نوشته خالی است — متن را در باکس محتوا بچسبانید یا با پرامپت پیش‌نویس بسازید.', 'info');
+                        }
+                        (els.genPrompt && (els.genPrompt.value || '').trim() ? els.genPrompt : els.raw).focus();
                         return;
                 }
 
@@ -795,6 +807,10 @@
                                 post_id: KIC.postId,
                                 target: target,
                                 content: content,
+                                /* Diagnostic: the browser-side length. When
+                                 * the server receives empty content while this
+                                 * is > 0, a WAF/host filter stripped it. */
+                                content_len: String(content.length),
                                 title: els.title ? els.title.value : '',
                                 kicker: els.kicker ? els.kicker.value : '',
                                 subtitle: els.subtitle ? els.subtitle.value : '',
@@ -947,6 +963,350 @@
          *
          * @return {HTMLElement|null} null = do not render.
          */
+        /* ================================================================
+         * v2.4 — prompt-based generation (article + optional image)
+         * ================================================================ */
+
+        /**
+         * Whether a usable provider is configured for generation.
+         *
+         * @return {boolean}
+         */
+        function genConfigured() {
+                return !!(KIC.generate && KIC.generate.configured);
+        }
+
+        /**
+         * One step chip for the generation flow header (۱ → ۲ → ۳).
+         *
+         * @param {string}  num    Step number (Persian digit).
+         * @param {string}  label  Step label.
+         * @param {boolean} active Whether this step is the current one.
+         * @return {Element}
+         */
+        function genStepChip(num, label, active) {
+                return h('span', {
+                        class: 'kic-gen-chip' + (active ? ' is-active' : ''),
+                        'data-gen-chip': num
+                }, [h('b', { text: num }), document.createTextNode(' ' + label)]);
+        }
+
+        /**
+         * Mark which generation step is current in the header chips.
+         *
+         * @param {number} step 1|2|3 (0 = reset).
+         * @return {void}
+         */
+        function setGenStep(step) {
+                if (!els.genBox) {
+                        return;
+                }
+                var chips = els.genBox.querySelectorAll('[data-gen-chip]');
+                for (var i = 0; i < chips.length; i++) {
+                        var n = parseInt(chips[i].getAttribute('data-gen-chip'), 10);
+                        chips[i].classList.toggle('is-active', n === step);
+                        chips[i].classList.toggle('is-done', step > 0 && n < step);
+                }
+        }
+
+        /**
+         * The 3-step «تولید با هوش مصنوعی» flow — mirrors the reference
+         * composer: (۱) give prompt/raw → (۲) editable preview →
+         * (۳) confirm, then the NORMAL publish button is the only write path.
+         *
+         * @return {Element|null}
+         */
+        function buildGenerateSection() {
+                if (!KIC.generate || !KIC.generate.enabled) {
+                        return null;
+                }
+
+                var configured = genConfigured();
+
+                els.genBox = h('div', { class: 'kic-genbox', id: 'kic-gen-box' }, [
+                        h('div', { class: 'kic-gen-steps' }, [
+                                genStepChip('۱', T('پرامپت / متن خام'), true),
+                                genStepChip('۲', T('پیش‌نمایش'), false),
+                                genStepChip('۳', T('تأیید و انتشار'), false)
+                        ])
+                ]);
+
+                /* ---------- Step 1: prompt (+ optional image) ---------- */
+                els.genPrompt = h('textarea', {
+                        class: 'kic-textarea',
+                        id: 'kic-f-gen-prompt',
+                        rows: '4',
+                        dir: 'auto',
+                        placeholder: T('موضوع یا دستور مقاله را بنویسید — مثلاً: مقاله‌ای ۸۰۰ کلمه‌ای دربارهٔ فواید خواب کافی برای وبلاگ سلامت')
+                });
+                if (!configured) {
+                        els.genPrompt.disabled = true;
+                        els.genPrompt.placeholder = T('ابتدا یک ارائه‌دهنده در «تنظیمات Natilus» پیکربندی کنید.');
+                }
+
+                els.genImage = h('input', { type: 'checkbox', class: 'kic-check', id: 'kic-f-gen-image', value: '1' });
+                if (!configured) {
+                        els.genImage.disabled = true;
+                }
+
+                els.btnGenerate = h('button', {
+                        class: 'kic-btn kic-btn--primary',
+                        type: 'button',
+                        onclick: runGenerate
+                }, [T('چینش با هوش مصنوعی')]);
+
+                els.genStatus = h('span', { class: 'kic-statusline-text', text: '' });
+                els.genSpinner = h('span', { class: 'kic-spinner kic-hidden', 'aria-hidden': 'true' });
+
+                var hintText = configured
+                        ? T('پرامپت را بنویسید یا متن خام را بچسبانید — هوش مصنوعی پیش‌نویس کامل (عنوان، روتیتر، زیرتیتر، متن و سئو) را می‌چیند و در مرحلهٔ ۲ به‌صورت پیش‌نمایش می‌آورد. هیچ‌چیز تا تأیید شما و کلیک «انتشار محتوا» منتشر نمی‌شود.')
+                        : T('تولید با پرامپت به یک ارائه‌دهندهٔ هوش مصنوعی نیاز دارد — هر سرویس سازگار با OpenAI (یا سرور محلی مثل Ollama/LM Studio) در «تنظیمات Natilus» کافی است. انتشار محتوای آماده بدون آن هم کامل کار می‌کند.');
+                var hint = h('div', { class: 'kic-note', text: hintText });
+
+                els.genStep1 = h('div', { class: 'kic-gen-step is-active' }, [
+                        h('div', { class: 'kic-gen-step-title' }, [
+                                h('span', { class: 'kic-gen-stepnum', text: '۱' }),
+                                h('span', { text: T('پرامپت یا متن خام را بدهید') })
+                        ]),
+                        hint,
+                        field('kic-f-gen-prompt', T('پرامپت تولید'), els.genPrompt),
+                        checkRow(els.genImage, T('تولید تصویر با هوش مصنوعی و افزودن به فهرست رسانه')),
+                        h('div', { class: 'kic-actions' }, configured ? [els.btnGenerate] : []),
+                        h('div', { class: 'kic-statusline' }, [els.genSpinner, els.genStatus])
+                ]);
+
+                if (!configured) {
+                        els.btnGenerate.classList.add('kic-hidden');
+                }
+
+                /* ---------- Step 2: preview (hidden until generated) ---- */
+                els.genPreviewTitle = h('div', { class: 'kic-gen-preview-title', dir: 'auto' });
+                els.genPreviewKicker = h('div', { class: 'kic-gen-preview-kicker', dir: 'auto' });
+                els.genPreviewBody = h('div', { class: 'kic-gen-preview-body' });
+                els.genMeta = h('div', { class: 'kic-gen-meta' });
+
+                els.btnGenConfirm = h('button', {
+                        class: 'kic-btn kic-btn--primary',
+                        type: 'button',
+                        onclick: confirmGenerate
+                }, [T('تأیید — ادامه به انتشار')]);
+
+                els.btnGenRegen = h('button', {
+                        class: 'kic-btn kic-btn--ghost',
+                        type: 'button',
+                        onclick: backToGenStep1
+                }, [T('تولید مجدد')]);
+
+                els.genStep2 = h('div', { class: 'kic-gen-step kic-hidden' }, [
+                        h('div', { class: 'kic-gen-step-title' }, [
+                                h('span', { class: 'kic-gen-stepnum', text: '۲' }),
+                                h('span', { text: T('پیش‌نمایش پیش از انتشار') })
+                        ]),
+                        h('p', { class: 'kic-gen-desc', text: T('پیش‌نویس تولیدشده در باکس «محتوای کامل نوشته» و فیلدهای عنوان/روتیتر/زیرتیتر/سئو قرار گرفته؛ هر بخش را اینجا مرور کنید، متن را در باکس پایین ویرایش کنید و بعد تأیید کنید.') }),
+                        els.genPreviewTitle,
+                        els.genPreviewKicker,
+                        els.genPreviewBody,
+                        els.genMeta,
+                        h('div', { class: 'kic-actions' }, [els.btnGenConfirm, els.btnGenRegen])
+                ]);
+
+                els.genBox.appendChild(els.genStep1);
+                els.genBox.appendChild(els.genStep2);
+                return els.genBox;
+        }
+
+        /**
+         * Show the generated article inside the step-2 preview card.
+         * The HTML was already wp_kses_post-sanitized server-side.
+         *
+         * @param {Object} article Generated fields.
+         * @return {void}
+         */
+        function showGenPreview(article) {
+                els.genStep1.classList.add('kic-hidden');
+                els.genStep2.classList.remove('kic-hidden');
+                setGenStep(2);
+
+                els.genPreviewTitle.textContent = article.title ? String(article.title) : T('(بدون عنوان — در فیلد عنوان بنویسید)');
+
+                var kickerBits = [];
+                if (article.kicker) { kickerBits.push(String(article.kicker)); }
+                if (article.subtitle) { kickerBits.push(String(article.subtitle)); }
+                els.genPreviewKicker.textContent = kickerBits.join(' — ');
+                els.genPreviewKicker.classList.toggle('kic-hidden', kickerBits.length === 0);
+
+                els.genPreviewBody.innerHTML = String(article.html || '');
+                els.genPreviewBody.scrollTop = 0;
+
+                var metaBits = [];
+                if (article.focus_keyword) { metaBits.push(T('کلیدواژه') + ': ' + article.focus_keyword); }
+                if (article.seo_title) { metaBits.push(T('عنوان سئو') + ': ' + article.seo_title); }
+                if (article.model) { metaBits.push('model: ' + article.model); }
+                els.genMeta.textContent = metaBits.join(' · ');
+
+                if (els.genStep2.scrollIntoView) {
+                        els.genStep2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+        }
+
+        /**
+         * Step-2 «تأیید» — the draft already lives in the normal form fields;
+         * this just returns the user to the publish button.
+         *
+         * @return {void}
+         */
+        function confirmGenerate() {
+                els.genStep2.classList.add('kic-hidden');
+                setGenStep(3);
+                toast(T('پیش‌نویس تأیید شد — دکمهٔ «انتشار محتوا» را بزنید.'), 'success');
+                if (els.btnPublish && els.btnPublish.scrollIntoView) {
+                        els.btnPublish.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        els.btnPublish.classList.add('kic-flash');
+                        setTimeout(function () { els.btnPublish.classList.remove('kic-flash'); }, 1600);
+                }
+        }
+
+        /**
+         * Step-2 «تولید مجدد» — back to the prompt with the text kept.
+         *
+         * @return {void}
+         */
+        function backToGenStep1() {
+                els.genStep2.classList.add('kic-hidden');
+                els.genStep1.classList.remove('kic-hidden');
+                els.genStep1.classList.add('is-active');
+                setGenStep(1);
+                if (els.genPrompt) {
+                        els.genPrompt.focus();
+                }
+        }
+
+        /**
+         * POST kic_generate — prompt only; the article comes back as fields
+         * and lands in the SAME raw box the publisher reads. Read-only.
+         *
+         * @return {void}
+         */
+        async function runGenerate() {
+                if (state.working || !els.genPrompt) {
+                        return;
+                }
+                var prompt = (els.genPrompt.value || '').trim();
+                var source = els.raw ? (els.raw.value || '') : '';
+                if (!prompt && source.trim().length < 20) {
+                        toast(T('پرامپت را بنویسید — یا متن خام را در باکس محتوا بچسبانید تا هوش مصنوعی آن را بچیند.'), 'info');
+                        els.genPrompt.focus();
+                        return;
+                }
+
+                state.working = true;
+                busy(els.btnGenerate, T('در حال تولید…'));
+                els.genSpinner.classList.remove('kic-hidden');
+                els.genStatus.textContent = T('در حال تولید مقاله…');
+
+                try {
+                        var data = await post('kic_generate', {
+                                prompt: prompt,
+                                /* Pasted raw text, when present: the model
+                                 * ORGANIZES it (چینش) instead of writing
+                                 * from scratch — matches the reference UX. */
+                                content: source,
+                                builder_mode: (els.builderMode && els.builderMode.value) || 'auto'
+                        });
+
+                        var article = (data && data.article) ? data.article : data;
+                        if (!article || !article.html) {
+                                throw new Error(T('پاسخ تولید قابل استفاده نبود.'));
+                        }
+
+                        /* Fill the raw box — the publisher reads exactly this. */
+                        els.raw.value = String(article.html);
+
+                        /* Fill metadata fields; never clobber text the author
+                         * already typed into a field. */
+                        fillIfEmpty(els.title, article.title);
+                        fillIfEmpty(els.kicker, article.kicker);
+                        fillIfEmpty(els.subtitle, article.subtitle);
+                        fillIfEmpty(els.seoQuickTitle, article.seo_title);
+                        fillIfEmpty(els.seoQuickDesc, article.seo_description);
+                        fillIfEmpty(els.seoFocusKeyword, article.focus_keyword);
+
+                        /* Step 2 — preview the draft before anything is
+                         * published; the user confirms, then the normal
+                         * «انتشار محتوا» button is the only write path. */
+                        showGenPreview(article);
+                        toast(T('پیش‌نویس تولید شد — در مرحلهٔ ۲ مرور و تأیید کنید.'), 'success');
+
+                        /* Optional image generation (explicit checkbox only). */
+                        if (els.genImage && els.genImage.checked) {
+                                await runGenerateImage(prompt, article);
+                        }
+                } catch (err) {
+                        els.genStatus.textContent = '';
+                        toast(err.message || T('تولید مقاله ناموفق بود.'), 'error');
+                } finally {
+                        state.working = false;
+                        els.genSpinner.classList.add('kic-hidden');
+                        unbusy(els.btnGenerate);
+                }
+        }
+
+        /**
+         * POST kic_generate_image — append the returned URL to the media list
+         * so the normal publish flow imports it (sideload → gallery/featured).
+         *
+         * @param {string} prompt  Original article prompt.
+         * @param {Object} article Generated article fields.
+         * @return {void}
+         */
+        async function runGenerateImage(prompt, article) {
+                var topic = (article && article.title) ? String(article.title) : prompt;
+                if (els.genMeta) {
+                        els.genMeta.textContent = T('در حال تولید تصویر…');
+                }
+                try {
+                        var data = await post('kic_generate_image', {
+                                prompt: 'Cover image for a WordPress article titled: ' + topic + '. Topic: ' + prompt
+                        });
+                        var url = data && data.url ? String(data.url) : '';
+                        if (!url) {
+                                toast(T('تصویر تولید نشد — مقاله بدون تصویر ادامه می‌یابد.'), 'info');
+                                return;
+                        }
+                        if (els.mediaUrls) {
+                                var lines = els.mediaUrls.value.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+                                if (lines.indexOf(url) === -1) {
+                                        lines.push(url);
+                                        els.mediaUrls.value = lines.join('\n');
+                                }
+                        }
+                        toast(T('تصویر تولید و به فهرست رسانه اضافه شد — هنگام انتشار وارد کتابخانه می‌شود.'), 'success');
+                        if (els.genMeta && article) {
+                                showGenPreview(article); // restore meta line after the «در حال تولید…» note
+                        }
+                } catch (err) {
+                        toast((err.message || T('تولید تصویر ناموفق بود.')) + ' ' + T('مقاله بدون تصویر ادامه می‌یابد.'), 'info');
+                }
+        }
+
+        /**
+         * Set an input's value only when it is currently empty — generated
+         * suggestions never overwrite author-typed text.
+         *
+         * @param {Element} el   Input/textarea.
+         * @param {string}  text Suggested value.
+         * @return {void}
+         */
+        function fillIfEmpty(el, text) {
+                if (!el || !text) {
+                        return;
+                }
+                var value = String(text).trim();
+                if (value !== '' && String(el.value || '').trim() === '') {
+                        el.value = value;
+                }
+        }
+
         function buildAiEditSection() {
                 /* Cached/older runtime config without the v2.3 flags. */
                 if (!KIC.aiEdit) {

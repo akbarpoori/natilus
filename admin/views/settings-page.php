@@ -322,6 +322,19 @@ $kic_fa_num = function ( $n ) { return number_format( (float) $n ); };
                                                 <input type="checkbox" name="kic_settings[ai_edit_enabled]" value="1" <?php checked( ! empty( $kic_settings['ai_edit_enabled'] ) ); ?> />
                                                 <span>ویرایش نوشتهٔ موجود با پرامپت (هوش مصنوعی — فقط با کلیک شما و بعد از پیش‌نمایش اعمال می‌شود)</span>
                                         </label>
+                                        <label class="kic-check">
+                                                <input type="checkbox" name="kic_settings[generate_enabled]" value="1" <?php checked( ! empty( $kic_settings['generate_enabled'] ) ); ?> />
+                                                <span>تولید مقاله از پرامپت (هوش مصنوعی — فقط با کلیک شما؛ نتیجه در باکس محتوا قرار می‌گیرد و تا کلیک «انتشار» منتشر نمی‌شود)</span>
+                                        </label>
+                                </div>
+                        </div>
+
+                        <div class="kic-field">
+                                <label for="kic-image-model">مدل تصویر (اختیاری)</label>
+                                <div class="kic-control">
+                                        <input type="text" id="kic-image-model" name="kic_settings[image_model]" class="kic-input"
+                                                dir="ltr" placeholder="dall-e-3" value="<?php echo esc_attr( (string) ( isset( $kic_settings['image_model'] ) ? $kic_settings['image_model'] : '' ) ); ?>" />
+                                        <p class="description">مدلی که برای «تولید تصویر» صدا زده می‌شود — فقط برای ارائه‌دهندگانی که endpoint تصاویر سازگار با OpenAI دارند (مثل dall-e-3 یا gpt-image-1). خالی = استفاده از مدل همان ارائه‌دهنده.</p>
                                 </div>
                         </div>
 

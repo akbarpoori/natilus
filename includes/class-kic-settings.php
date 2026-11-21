@@ -277,9 +277,15 @@ final class KIC_Settings {
 
                 /* Features tab ---------------------------------------------------- */
 
-                foreach ( array( 'auto_sideload', 'jsonld', 'internal_links', 'draft_default', 'ai_edit_enabled' ) as $flag ) {
+                foreach ( array( 'auto_sideload', 'jsonld', 'internal_links', 'draft_default', 'ai_edit_enabled', 'generate_enabled' ) as $flag ) {
                         $clean[ $flag ] = isset( $incoming[ $flag ] ) ? 1 : 0;
                 }
+
+                /* v2.4 — image-generation model override ('' = reuse the
+                 * provider's own model slot). Sanitized like any model name. */
+                $clean['image_model'] = isset( $incoming['image_model'] )
+                        ? sanitize_text_field( (string) $incoming['image_model'] )
+                        : (string) $current['image_model'];
 
                 if ( isset( $incoming['rate_limit'] ) && '' !== trim( (string) $incoming['rate_limit'] ) ) {
                         $clean['rate_limit'] = min( 120, max( 0, absint( $incoming['rate_limit'] ) ) );

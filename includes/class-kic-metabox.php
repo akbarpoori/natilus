@@ -230,6 +230,11 @@ final class KIC_Metabox {
                         'aiEdit'       => ( class_exists( 'KIC_AI_Editor' ) && method_exists( 'KIC_AI_Editor', 'availability' ) )
                                 ? KIC_AI_Editor::availability()
                                 : array( 'enabled' => false, 'configured' => false ),
+                        /* v2.4 — prompt-based generation + optional image generation (guarded). */
+                        'generate'     => ( class_exists( 'KIC_Generator' ) && method_exists( 'KIC_Generator', 'availability' ) )
+                                ? KIC_Generator::availability()
+                                : array( 'enabled' => false, 'configured' => false ),
+                        'imageModel'   => (string) kic_get_setting( 'image_model', '' ),
                         'i18n'         => ( class_exists( 'KIC_I18n' ) && method_exists( 'KIC_I18n', 'js_package' ) )
                                 ? KIC_I18n::js_package()
                                 : array( 'lang' => 'fa', 'dict' => array() ),

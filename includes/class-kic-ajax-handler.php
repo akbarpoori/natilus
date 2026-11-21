@@ -535,7 +535,52 @@ final class KIC_Ajax_Handler {
          *                      tags, seo).
          * @return array|WP_Error
          */
+        /**
+         * Parse an INI size value ("8M", "512K", "-1") into bytes.
+         *
+         * @param mixed $value Raw ini value.
+         * @return int Bytes; -1 (unlimited) is returned as PHP_INT_MAX.
+         */
+        private function php_size_to_bytes( $value ) {
+                $value = trim( (string) $value );
+                if ( '' === $value || '-1' === $value ) {
+                        return PHP_INT_MAX;
+                }
+                $unit  = strtolower( substr( $value, -1 ) );
+                $num   = (float) $value;
+                switch ( $unit ) {
+                        case 'g':
+                                $num *= 1024;
+                                // no break — intentional fallthrough to M.
+                        case 'm':
+                                $num *= 1024;
+                                // no break — intentional fallthrough to K.
+                        case 'k':
+                                $num *= 1024;
+                }
+                return (int) $num;
+        }
+
         private function do_publish_ready( $params ) {
+                /*
+                 * A request body larger than PHP's post_max_size is dropped
+                 * SILENTLY by PHP — $_POST arrives empty and a long pasted
+                 * article would misleadingly report «no content». Detect the
+                 * oversize body up front and say what actually happened.
+                 */
+                $content_length = isset( $_SERVER['CONTENT_LENGTH'] ) ? (int) $_SERVER['CONTENT_LENGTH'] : 0;
+                $post_max       = $this->php_size_to_bytes( ini_get( 'post_max_size' ) );
+                if ( $content_length > 0 && $post_max > 0 && $content_length > $post_max ) {
+                        return new WP_Error(
+                                'kic_publish_too_large',
+                                sprintf(
+                                        'حجم متن ارسالی (%1$s) از سقف مجاز سرور (%2$s) بزرگ‌تر است — متن کامل دریافت نشد. لطفاً متن را کوتاه‌تر کنید یا از پشتیبانی هاست بخواهید post_max_size را افزایش دهد.',
+                                        size_format( $content_length ),
+                                        size_format( $post_max )
+                                )
+                        );
+                }
+
                 $post_id = isset( $params['post_id'] ) ? absint( $params['post_id'] ) : 0;
                 $target  = isset( $params['target'] ) ? (string) $params['target'] : 'append';
                 if ( ! in_array( $target, array( 'append', 'replace', 'draft_new' ), true ) ) {
@@ -545,6 +590,11 @@ final class KIC_Ajax_Handler {
                 $html = isset( $params['content'] ) ? (string) $params['content'] : '';
                 $html = wp_check_invalid_utf8( $html, true );
                 if ( '' === trim( $html ) ) {
+                        /* Browser sent text but it never arrived → a host
+                         * WAF/ModSecurity filter stripped the field. */
+                        if ( isset( $params['content_len'] ) && (int) $params['content_len'] > 0 ) {
+                                return new WP_Error( 'kic_publish_stripped', 'مرورگر شما ' . (int) $params['content_len'] . ' کاراکتر فرستاد اما به سرور نرسید — احتمالاً فایروال یا فیلتر امنیتی هاست متن را حذف کرده است. از پشتیبانی هاست بخواهید ModSecurity/WAF را برای admin-ajax بررسی کند.' );
+                        }
                         return new WP_Error( 'kic_publish_empty', 'محتوای نوشته خالی است — چیزی برای انتشار ارسال نشده است.' );
                 }
 

@@ -1602,3 +1602,214 @@
         background: #f8fafc;
         margin-top: 0;
 }
+
+/* ================================================================
+ * v2.4 — AI generation steps (prompt → preview → confirm)
+ * ================================================================ */
+
+.kic-genbox {
+        border: 1px solid #99f6e4;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 140px);
+        padding: 14px;
+        margin: 0 0 14px;
+}
+
+.kic-gen-steps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+}
+
+.kic-gen-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #64748b;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: 4px 12px;
+}
+
+.kic-gen-chip b {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #475569;
+        font-size: 11px;
+        font-weight: 700;
+}
+
+.kic-gen-chip.is-active {
+        border-color: #14b8a6;
+        color: #0f766e;
+        font-weight: 700;
+}
+
+.kic-gen-chip.is-active b {
+        background: #0f766e;
+        color: #fff;
+}
+
+.kic-gen-chip.is-done {
+        border-color: #a7f3d0;
+        color: #0f766e;
+}
+
+.kic-gen-chip.is-done b {
+        background: #ccfbf1;
+        color: #0f766e;
+}
+
+.kic-gen-step {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+}
+
+.kic-gen-step.is-active {
+        border-color: #14b8a6;
+        box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.25);
+}
+
+.kic-gen-step-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #0f172a;
+}
+
+.kic-gen-stepnum {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #0f766e;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        flex: 0 0 auto;
+}
+
+.kic-gen-desc {
+        margin: 0;
+        font-size: 12.5px;
+        color: #64748b;
+        line-height: 1.9;
+}
+
+.kic-gen-preview-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.5;
+}
+
+.kic-gen-preview-kicker {
+        font-size: 13px;
+        color: #0f766e;
+        font-weight: 600;
+}
+
+.kic-gen-preview-body {
+        max-height: 380px;
+        overflow: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 14px;
+        background: #fff;
+        font-size: 14px;
+        line-height: 1.9;
+        color: #1e293b;
+}
+
+.kic-gen-preview-body h1,
+.kic-gen-preview-body h2,
+.kic-gen-preview-body h3,
+.kic-gen-preview-body h4 {
+        color: #0f172a;
+        margin: 14px 0 8px;
+        line-height: 1.5;
+}
+
+.kic-gen-preview-body h1 { font-size: 20px; }
+.kic-gen-preview-body h2 { font-size: 18px; }
+.kic-gen-preview-body h3 { font-size: 16px; }
+.kic-gen-preview-body p { margin: 0 0 10px; }
+.kic-gen-preview-body ul,
+.kic-gen-preview-body ol { margin: 0 0 10px; padding-inline-start: 22px; }
+.kic-gen-preview-body img { max-width: 100%; height: auto; border-radius: 4px; }
+.kic-gen-preview-body a { color: #0f766e; }
+.kic-gen-preview-body blockquote {
+        border-inline-start: 3px solid #14b8a6;
+        margin: 0 0 10px;
+        padding: 4px 12px;
+        color: #475569;
+        background: #f8fafc;
+}
+
+.kic-gen-preview-body::-webkit-scrollbar { width: 8px; }
+.kic-gen-preview-body::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+}
+.kic-gen-preview-body::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+.kic-gen-meta {
+        font-size: 12px;
+        color: #64748b;
+        direction: rtl;
+}
+
+/* Flash highlight on the publish button after a confirmed preview. */
+.kic-flash {
+        animation: kic-flash 1.6s ease;
+}
+
+@keyframes kic-flash {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0); }
+        30% { box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.45); }
+}
+
+/* ================================================================
+ * Visual separation pass — panels/notes no longer blend into the card
+ * ================================================================ */
+
+.kic-imgpanel-body {
+        background: #fbfdfe;
+}
+
+.kic-root details.kic-imgpanel > summary {
+        background: #f8fafc;
+        border-radius: 8px 8px 0 0;
+}
+
+.kic-root details.kic-imgpanel[open] > summary {
+        border-bottom: 1px solid #e2e8f0;
+}
+
+.kic-checks {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 14px;
+}
+
+.kic-footer {
+        border-top: 1px solid #e2e8f0;
+}
