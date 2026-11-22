@@ -210,6 +210,7 @@ final class KIC_Metabox {
                 }
 
                 return array(
+                        'version'      => KIC_VERSION,
                         'ajaxurl'      => admin_url( 'admin-ajax.php' ),
                         'nonce'        => wp_create_nonce( 'kic_ajax' ),
                         'postId'       => $post_id,

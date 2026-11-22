@@ -1125,12 +1125,20 @@
                         onclick: function () { loadProviderModels(true); },
                         title: T('فهرست مدل‌های ارائه‌دهنده را دوباره بخوان')
                 }, [T('↻ مدل‌ها')]);
-                var genModelRow = configured ? h('div', { class: 'kic-checks', style: 'align-items:center;gap:8px' }, [
+                /* Row renders ALWAYS — visible even without a provider so
+                 * there is no ambiguity about where model selection lives;
+                 * the select stays disabled until a provider exists. */
+                if (!configured) {
+                        els.genModel.disabled = true;
+                        els.btnModelLoad.disabled = true;
+                        els.genModelStatus.textContent = T('— ابتدا ارائه‌دهنده را در تنظیمات وصل کنید');
+                }
+                var genModelRow = h('div', { class: 'kic-checks', style: 'align-items:center;gap:8px' }, [
                         h('span', { class: 'kic-muted', text: T('مدل:') }),
                         els.genModel,
                         els.btnModelLoad,
                         els.genModelStatus
-                ]) : null;
+                ]);
 
                 els.btnGenerate = h('button', {
                         class: 'kic-btn kic-btn--primary',
@@ -1159,7 +1167,10 @@
                         ]),
                         genModelRow,
                         h('div', { class: 'kic-actions' }, [els.btnGenerate]),
-                        h('div', { class: 'kic-statusline' }, [els.genSpinner, els.genStatus])
+                        h('div', { class: 'kic-statusline' }, [els.genSpinner, els.genStatus,
+                                /* Running version — settles «کدام نسخه نصب است» instantly. */
+                                h('span', { class: 'kic-muted', style: 'font-size:10px;margin-inline-start:auto', text: 'v' + String(KIC.version || '?') })
+                        ])
                 ]);
 
                 if (!configured && els.btnGenerate) {
