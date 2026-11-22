@@ -4,7 +4,7 @@ Tags: publishing, content, elementor, seo, gutenberg, classic-editor, bulk, work
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2.5.0
+Stable tag: 2.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,12 @@ Settings → "Transfer settings" → download a portable JSON bundle (API keys e
 Use the WP-CLI commands: `wp kic queue --action=run` and `wp kic tokens --days=7`.
 
 == Changelog ==
+
+= 2.5.1 =
+* Fix: cats/tags accept array or CSV (no more array-to-string warning)
+* Fix: Elementor-mode publishes now sync post_content so WP editor/search/excerpts show content
+* Complete OG/Twitter fallback: og:type/url/image + twitter:card/title/description/image
+* Verified on live WordPress (activation, metabox, real AJAX publish, Elementor data)
 
 = 2.5.0 =
 * Import-first layout: content box on top, prompt below — organize mode only, no silent generation
