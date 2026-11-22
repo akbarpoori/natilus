@@ -4,7 +4,7 @@ Tags: publishing, content, elementor, seo, gutenberg, classic-editor, bulk, work
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2.7.0
+Stable tag: 2.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,10 @@ Settings → "Transfer settings" → download a portable JSON bundle (API keys e
 Use the WP-CLI commands: `wp kic queue --action=run` and `wp kic tokens --days=7`.
 
 == Changelog ==
+
+= 2.7.1 =
+* Fix: iframe/video/audio/details/pre blocks now map to Elementor html widgets — embeds were silently dropped from the Elementor doc (post_content had them, _elementor_data did not)
+* Verified end-to-end on real Elementor 4.4.1: container doc, widgets, builder mode, page settings, native API write, frontend render via get_builder_content
 
 = 2.7.0 =
 * Elementor: native Documents API write (normalize + CSS regen) with raw-meta fallback, clear_cache after publish, _elementor_page_settings set

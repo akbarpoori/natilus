@@ -487,6 +487,20 @@ EOT;
                         );
                 }
 
+                /* Embeds & complex markup -> raw HTML widget (keeps iframe
+                 * players, audio, forms exactly as the author pasted them;
+                 * text-editor widgets would mangle these). */
+                if ( in_array( $tag, array( 'iframe', 'video', 'audio', 'details', 'pre', 'div', 'section' ), true ) ) {
+                        return array(
+                                'id'         => self::elementor_id(),
+                                'elType'     => 'widget',
+                                'widgetType' => 'html',
+                                'settings'   => array(
+                                        'html' => $html,
+                                ),
+                        );
+                }
+
                 // hr -> divider widget.
                 if ( 'hr' === $tag ) {
                         return array(
@@ -535,7 +549,7 @@ EOT;
                 $html = trim( (string) $html );
                 $blocks = array();
 
-                $pattern = '~(<(h[1-6]|p|ul|ol|blockquote|figure|table|img|hr)\b[^>]*>.*?</\2>|<(h[1-6]|p|ul|ol|blockquote|figure|table)\b[^>]*/>|<(img|hr)\b[^>]*/?>)~is';
+                $pattern = '~(<(h[1-6]|p|ul|ol|blockquote|figure|table|img|hr|iframe|video|audio|details|pre)\b[^>]*>.*?</\2>|<(h[1-6]|p|ul|ol|blockquote|figure|table)\b[^>]*/>|<(img|hr)\b[^>]*/?>)~is';
 
                 if ( ! preg_match_all( $pattern, $html, $matches, PREG_OFFSET_CAPTURE ) ) {
                         // Fallback: treat the whole body as one text block.
