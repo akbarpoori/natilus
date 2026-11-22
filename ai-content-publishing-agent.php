@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Natilus
  * Description:       Natilus publishes your ready-made content to WordPress exactly as written — kicker/subtitle synced with your theme, media import, galleries, featured image, Elementor/WPBakery/Gutenberg/Classic layouts, SEO meta, drip queue, rollback. AI helpers optional. https://github.com/akbarpoori/natilus | انتشارگر محتوای آماده برای وردپرس
- * Version:           2.7.2
+ * Version:           2.8.0
  * Requires at least: 5.8
  * Requires PHP:      7.0
  * Author:            Meysam Akbarpoori
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         exit;
 }
 
-define( 'KIC_VERSION', '2.7.2' );
+define( 'KIC_VERSION', '2.8.0' );
 define( 'KIC_FILE', __FILE__ );
 define( 'KIC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KIC_URL', plugin_dir_url( __FILE__ ) );
@@ -69,6 +69,7 @@ $kic_includes = array(
         'class-kic-bulk-generator.php',    // bulk PUBLISH of ready-made articles + legacy queue processing.
         // v1.4.0 — publish quality, queue calendar, reports, distribution.
         'class-kic-prepublish.php',        // read-only pre-publish checklist + link opportunities.
+        'class-kic-content-extras.php',    // Jalali dates + smart links + OG card (IOR-inspired).
         'class-kic-term-suggester.php',    // user-approved existing-term & slug suggestions.
         'class-kic-queue-manager.php',     // publish calendar + queue operations.
         'class-kic-chain-health.php',      // durable failover event log (read-only).
@@ -204,6 +205,10 @@ if ( ! function_exists( 'kic_default_settings' ) ) {
                         'theme_sync_kicker_custom'   => '',
                         'theme_sync_subtitle_custom' => '',
                         // v2.3.0 — OPTIONAL prompt-based edit of the current post.
+                        'related_posts'              => 0,
+                        'smart_links'                => 0,
+                        'og_card'                    => 0,
+                        'og_font_path'               => '',
                         'ai_edit_enabled'            => 1,
                         // v2.4.0 — OPTIONAL prompt-based article + image generation.
                         'generate_enabled'           => 1,

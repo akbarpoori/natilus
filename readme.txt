@@ -4,7 +4,7 @@ Tags: publishing, content, elementor, seo, gutenberg, classic-editor, bulk, work
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2.7.2
+Stable tag: 2.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,12 @@ Settings → "Transfer settings" → download a portable JSON bundle (API keys e
 Use the WP-CLI commands: `wp kic queue --action=run` and `wp kic tokens --days=7`.
 
 == Changelog ==
+
+= 2.8.0 =
+* Feature (borrowed from iran-outdoor): Smart links — automatic non-destructive internal linking via the_content filter (stored content untouched, longest-title-first, max 3 links, opt-in)
+* Feature: Jalali date conversion (g2j) + Persian digits helpers — KIC_Content_Extras::jalali_date()/fa_digits()
+* Feature: OG share-card generator 1200x630 via GD (Settings > ویژگی‌ها > og_card + TTF font path for Persian text); falls back to featured image
+* Fix: related_posts checkbox now actually persists (was missing from the settings whitelist)
 
 = 2.7.2 =
 * Fix: prompt box is always editable — without a provider the local H1:/H2: parser still organizes (button relabelled «چینش بدون هوش مصنوعی (محلی)»)

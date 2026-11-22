@@ -335,6 +335,14 @@ $kic_fa_num = function ( $n ) { return number_format( (float) $n ); };
                                                 <input type="checkbox" name="kic_settings[related_posts]" value="1" <?php checked( ! empty( $kic_settings['related_posts'] ) ); ?> />
                                                 <span>افزودن خودکار بلوک «مطالب مرتبط» به انتهای نوشته (۳ نوشتهٔ هم‌دسته — بدون هوش مصنوعی)</span>
                                         </label>
+                                        <label class="kic-check">
+                                                <input type="checkbox" name="kic_settings[smart_links]" value="1" <?php checked( ! empty( $kic_settings['smart_links'] ) ); ?> />
+                                                <span>لینک‌سازی هوشمند خودکار — عنوان نوشته‌های دیگر داخل متن به لینک تبدیل می‌شود (غیرمخرب: محتوای ذخیره‌شده دست نمی‌خورد، حداکثر ۳ لینک)</span>
+                                        </label>
+                                        <label class="kic-check">
+                                                <input type="checkbox" name="kic_settings[og_card]" value="1" <?php checked( ! empty( $kic_settings['og_card'] ) ); ?> />
+                                                <span>تولید کارت اشتراک‌گذاری OG با عنوان نوشته (۱۲۰۰×۶۳۰ — نیازمند فیلد مسیر فونت TTF زیر)</span>
+                                        </label>
                                 </div>
                         </div>
 
@@ -344,6 +352,15 @@ $kic_fa_num = function ( $n ) { return number_format( (float) $n ); };
                                         <input type="text" id="kic-image-model" name="kic_settings[image_model]" class="kic-input"
                                                 dir="ltr" placeholder="dall-e-3" value="<?php echo esc_attr( (string) ( isset( $kic_settings['image_model'] ) ? $kic_settings['image_model'] : '' ) ); ?>" />
                                         <p class="description">مدلی که برای «تولید تصویر» صدا زده می‌شود — فقط برای ارائه‌دهندگانی که endpoint تصاویر سازگار با OpenAI دارند (مثل dall-e-3 یا gpt-image-1). خالی = استفاده از مدل همان ارائه‌دهنده.</p>
+                                </div>
+                        </div>
+
+                        <div class="kic-field">
+                                <label for="kic-og-font">مسیر فونت TTF برای کارت OG (اختیاری)</label>
+                                <div class="kic-control">
+                                        <input type="text" id="kic-og-font" name="kic_settings[og_font_path]" class="kic-input"
+                                                dir="ltr" placeholder="C:/wptest/fonts/Vazirmatn-Regular.ttf" value="<?php echo esc_attr( (string) ( isset( $kic_settings['og_font_path'] ) ? $kic_settings['og_font_path'] : '' ) ); ?>" />
+                                        <p class="description">مسیر کامل یک فونت TTF فارسی‌پشتیبان روی سرور (مثل Vazirmatn). خالی = کارت OG تولید نمی‌شود و همان تصویر شاخص استفاده می‌شود.</p>
                                 </div>
                         </div>
 

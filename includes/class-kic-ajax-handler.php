@@ -530,6 +530,11 @@ final class KIC_Ajax_Handler {
                         clean_post_cache( $post_id );
                 }
 
+                /* v2.8 — generated OG share card when enabled+feasible. */
+                if ( class_exists( 'KIC_Content_Extras' ) ) {
+                        KIC_Content_Extras::maybe_og_card( $post_id, isset( $params['title'] ) ? (string) $params['title'] : '' );
+                }
+
                 /* v2.7 — when Elementor handled the publish, hand back the
                  * real Elementor-editor URL so the UI can offer "open in
                  * Elementor" instead of the plain WP editor. */

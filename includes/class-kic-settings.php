@@ -277,9 +277,15 @@ final class KIC_Settings {
 
                 /* Features tab ---------------------------------------------------- */
 
-                foreach ( array( 'auto_sideload', 'jsonld', 'internal_links', 'draft_default', 'ai_edit_enabled', 'generate_enabled' ) as $flag ) {
+                foreach ( array( 'auto_sideload', 'jsonld', 'internal_links', 'draft_default', 'ai_edit_enabled', 'generate_enabled', 'related_posts', 'smart_links', 'og_card' ) as $flag ) {
                         $clean[ $flag ] = isset( $incoming[ $flag ] ) ? 1 : 0;
                 }
+
+                /* v2.8 — TTF font path for the generated OG card: filesystem
+                 * path, not a URL — sanitize_text_field only. */
+                $clean['og_font_path'] = isset( $incoming['og_font_path'] )
+                        ? sanitize_text_field( (string) $incoming['og_font_path'] )
+                        : (string) ( isset( $current['og_font_path'] ) ? $current['og_font_path'] : '' );
 
                 /* v2.4 — image-generation model override ('' = reuse the
                  * provider's own model slot). Sanitized like any model name. */
