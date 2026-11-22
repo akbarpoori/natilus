@@ -374,6 +374,20 @@ final class KIC_Ajax_Handler {
                 // Remove leftover pipeline markers before injection.
                 $html = KIC_Content_Injector::instance()->strip_markers( $html );
 
+                /* Stable heading anchors — lets Easy TOC / LuckyWP / deep
+                 * internal links work on both post_content and the Elementor
+                 * document built from this HTML. */
+                if ( function_exists( 'kic_add_heading_ids' ) ) {
+                        $html = kic_add_heading_ids( $html );
+                }
+
+                /* v2.7 — optional «مطالب مرتبط» block: appended to the HTML so
+                 * it flows into post_content AND the Elementor document the
+                 * same way. Same-category posts only, never AI-invented. */
+                if ( kic_get_setting( 'related_posts', 0 ) && false === strpos( $html, 'kic-related' ) ) {
+                        $html .= self::related_posts_block( $post_id );
+                }
+
                 // 4) Featured image — the user-picked URL wins; otherwise first item.
                 if ( $opts['featured'] && ! empty( $ids ) ) {
                         $featured_id = (int) reset( $ids );
@@ -510,15 +524,64 @@ final class KIC_Ajax_Handler {
                         }
                 }
 
+                /* Flush cached page HTML so the new content is visible
+                 * immediately (WP rockets/caches hook this too). */
+                if ( function_exists( 'clean_post_cache' ) ) {
+                        clean_post_cache( $post_id );
+                }
+
+                /* v2.7 — when Elementor handled the publish, hand back the
+                 * real Elementor-editor URL so the UI can offer "open in
+                 * Elementor" instead of the plain WP editor. */
+                $elementor_url = '';
+                if ( 'elementor' === $effective_mode && function_exists( 'admin_url' ) ) {
+                        $elementor_url = admin_url( 'post.php?post=' . $post_id . '&action=elementor' );
+                }
+
                 return array(
                         'backup_key'        => $backup_key,
                         'result'            => $result,
                         'gallery_shortcode' => $sc,
                         'featured_id'       => $featured_id,
                         'edit_url'          => $edit_url,
+                        'elementor_url'     => $elementor_url,
                         'builder_mode'      => $effective_mode,
                         'builder_applied'   => ( null !== $mode_applied ) ? $mode_applied['mode'] : '',
                 );
+        }
+
+        /**
+         * Build a «مطالب مرتبط» block: up to 3 published posts sharing a
+         * category with the target post. Empty string when nothing qualifies.
+         *
+         * @param int $post_id Post whose categories drive the lookup.
+         * @return string HTML block or ''.
+         */
+        private static function related_posts_block( $post_id ) {
+                $cats = function_exists( 'wp_get_object_terms' )
+                        ? wp_get_object_terms( $post_id, 'category', array( 'fields' => 'ids' ) )
+                        : array();
+                if ( ! is_array( $cats ) || empty( $cats ) || ! function_exists( 'get_posts' ) ) {
+                        return '';
+                }
+                $found = get_posts(
+                        array(
+                                'post_type'      => 'post',
+                                'post_status'    => 'publish',
+                                'posts_per_page' => 3,
+                                'exclude'        => array( $post_id ),
+                                'category__in'   => array_map( 'absint', $cats ),
+                                'no_found_rows'  => true,
+                        )
+                );
+                if ( empty( $found ) ) {
+                        return '';
+                }
+                $block = '<div class="kic-related"><h2>' . kic_t( 'مطالب مرتبط' ) . '</h2><ul>';
+                foreach ( $found as $rel ) {
+                        $block .= '<li><a href="' . esc_url( get_permalink( $rel ) ) . '">' . esc_html( get_the_title( $rel ) ) . '</a></li>';
+                }
+                return $block . '</ul></div>';
         }
 
         /* ---------------------------------------------------------------------

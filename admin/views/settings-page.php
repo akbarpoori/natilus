@@ -326,6 +326,10 @@ $kic_fa_num = function ( $n ) { return number_format( (float) $n ); };
                                                 <input type="checkbox" name="kic_settings[generate_enabled]" value="1" <?php checked( ! empty( $kic_settings['generate_enabled'] ) ); ?> />
                                                 <span>تولید مقاله از پرامپت (هوش مصنوعی — فقط با کلیک شما؛ نتیجه در باکس محتوا قرار می‌گیرد و تا کلیک «انتشار» منتشر نمی‌شود)</span>
                                         </label>
+                                        <label class="kic-check">
+                                                <input type="checkbox" name="kic_settings[related_posts]" value="1" <?php checked( ! empty( $kic_settings['related_posts'] ) ); ?> />
+                                                <span>افزودن خودکار بلوک «مطالب مرتبط» به انتهای نوشته (۳ نوشتهٔ هم‌دسته — بدون هوش مصنوعی)</span>
+                                        </label>
                                 </div>
                         </div>
 

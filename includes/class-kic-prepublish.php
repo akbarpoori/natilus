@@ -96,7 +96,128 @@ final class KIC_Prepublish {
                 /* 6. Internal links. */
                 $out[] = self::check_internal_links( $post );
 
+                /* 7. Readability — long sentences, wall-of-text paragraphs,
+                 *    heading coverage, and a TOC hint for long articles. */
+                $out = array_merge( $out, self::check_readability( $post ) );
+
+                /* 8. Duplicate-title guard. */
+                $out[] = self::check_duplicate_title( $post );
+
                 return $out;
+        }
+
+        /**
+         * Lightweight readability heuristics (no external service).
+         * Thresholds are tuned for Persian articles: wordy sentences and
+         * giant paragraphs are the two biggest readability killers.
+         *
+         * @param WP_Post $post Target post.
+         * @return array Check rows.
+         */
+        private static function check_readability( $post ) {
+                $rows = array();
+                $html = (string) $post->post_content;
+
+                /* Use Elementor data when post_content is empty — readable
+                 * text lives in the widgets there. */
+                if ( '' === trim( $html ) && class_exists( 'KIC_Builder_Modes' ) ) {
+                        $edata = json_decode( (string) get_post_meta( $post->ID, '_elementor_data', true ), true );
+                        if ( is_array( $edata ) && method_exists( 'KIC_Builder_Modes', 'elementor_text_html' ) ) {
+                                $html = KIC_Builder_Modes::elementor_text_html( $edata );
+                        }
+                }
+
+                $text = trim( wp_strip_all_tags( $html ) );
+                if ( '' === $text ) {
+                        return $rows;
+                }
+
+                /* Sentences: split on sentence-ending punctuation. */
+                $sentences = preg_split( '/[.!؟?…]+\s*/u', $text, -1, PREG_SPLIT_NO_EMPTY );
+                $long      = 0;
+                $total     = count( $sentences );
+                foreach ( $sentences as $s ) {
+                        $w = str_word_count( preg_replace( '/[^\pL\pN\s]/u', ' ', $s ) );
+                        /* str_word_count misses non-Latin; count whitespace tokens too. */
+                        if ( 0 === $w ) {
+                                $w = count( preg_split( '/\s+/u', trim( $s ), -1, PREG_SPLIT_NO_EMPTY ) );
+                        }
+                        if ( $w > 30 ) {
+                                $long++;
+                        }
+                }
+                $rows[] = array(
+                        'id'     => 'readability_sentences',
+                        'label'  => kic_t( 'طول جمله‌ها' ),
+                        'status' => $long === 0 ? 'ok' : ( $long <= 2 ? 'warn' : 'fail' ),
+                        'detail' => $long === 0 ? kic_t( 'جمله‌ها کوتاه و خوانا هستند.' ) : sprintf( kic_t( '%d جمله بیش از ۳۰ کلمه دارند — کوتاه کنید.' ), $long ),
+                );
+
+                /* Paragraphs: any <p> with > 120 words is a wall of text. */
+                preg_match_all( '/<p\b[^>]*>(.*?)<\/p>/is', $html, $pm );
+                $fat = 0;
+                foreach ( $pm[1] as $p ) {
+                        $w = count( preg_split( '/\s+/u', trim( wp_strip_all_tags( $p ) ), -1, PREG_SPLIT_NO_EMPTY ) );
+                        if ( $w > 120 ) {
+                                $fat++;
+                        }
+                }
+                $rows[] = array(
+                        'id'     => 'readability_paragraphs',
+                        'label'  => kic_t( 'طول پاراگراف‌ها' ),
+                        'status' => $fat === 0 ? 'ok' : 'warn',
+                        'detail' => $fat === 0 ? kic_t( 'پاراگراف‌ها کوتاه هستند.' ) : sprintf( kic_t( '%d پاراگراف بیش از ۱۲۰ کلمه دارند — بشکنید.' ), $fat ),
+                );
+
+                /* Headings + TOC hint: >=3 h2s with no TOC plugin -> suggest. */
+                $h2 = preg_match_all( '/<h2\b/i', $html );
+                $toc_active = class_exists( 'ezTOC' ) || defined( 'LUCKYWPTOC_VERSION' ) || class_exists( 'Luckywp\TableOfContents\Plugin' );
+                $rows[] = array(
+                        'id'     => 'toc_hint',
+                        'label'  => kic_t( 'فهرست مطالب (TOC)' ),
+                        'status' => $h2 < 3 ? 'na' : ( $toc_active ? 'ok' : 'warn' ),
+                        'detail' => $h2 < 3 ? kic_t( 'نوشته برای TOC کوتاه است.' ) : ( $toc_active ? kic_t( 'TOC فعال است و تیترها آماده‌اند.' ) : kic_t( 'این نوشته بیش از ۳ تیتر دارد — افزونهٔ TOC (مثل Easy TOC) فعال نیست.' ) ),
+                );
+
+                return $rows;
+        }
+
+        /**
+         * Warn when another published post already uses this title.
+         *
+         * @param WP_Post $post Target post.
+         * @return array
+         */
+        private static function check_duplicate_title( $post ) {
+                $dup = false;
+                if ( function_exists( 'get_posts' ) && '' !== trim( (string) $post->post_title ) ) {
+                        $found = get_posts(
+                                array(
+                                        'post_type'      => $post->post_type,
+                                        'post_status'    => array( 'publish', 'future', 'private' ),
+                                        'title'          => $post->post_title,
+                                        'posts_per_page' => 5,
+                                        'fields'         => 'ids',
+                                        'exclude'        => array( $post->ID ),
+                                        'no_found_rows'  => true,
+                                        'suppress_filters' => true,
+                                )
+                        );
+                        /* WP_Query 'title' is a LIKE match in older versions;
+                         * do a strict equality pass for accuracy. */
+                        foreach ( (array) $found as $fid ) {
+                                if ( trim( (string) get_post_field( 'post_title', $fid ) ) === trim( (string) $post->post_title ) ) {
+                                        $dup = true;
+                                        break;
+                                }
+                        }
+                }
+                return array(
+                        'id'     => 'duplicate_title',
+                        'label'  => kic_t( 'عنوان تکراری' ),
+                        'status' => $dup ? 'warn' : 'ok',
+                        'detail' => $dup ? kic_t( 'نوشتهٔ منتشرشدهٔ دیگری همین عنوان را دارد — برای سئو بهتر است یکتا باشد.' ) : kic_t( 'عنوان یکتا است.' ),
+                );
         }
 
         /**

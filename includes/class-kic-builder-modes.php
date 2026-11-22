@@ -367,7 +367,42 @@ EOT;
                         return array();
                 }
 
+                /* v2.7 — Elementor >= 3.16 defaults to Flexbox Containers;
+                 * the legacy section/column doc still renders but loads the
+                 * deprecated layout engine. Emit a container doc on modern
+                 * installs, keep sections for older ones. */
+                if ( self::elementor_containers() ) {
+                        return array( self::elementor_container( $widgets ) );
+                }
+
                 return array( self::elementor_section( $widgets ) );
+        }
+
+        /**
+         * Does the active Elementor use the container layout engine?
+         * Checked via the version constant only — no hard dependency.
+         *
+         * @return bool
+         */
+        private static function elementor_containers() {
+                return defined( 'ELEMENTOR_VERSION' ) && version_compare( ELEMENTOR_VERSION, '3.16', '>=' );
+        }
+
+        /**
+         * Elementor container wrapper (3.16+): container > widgets.
+         *
+         * @param array $widgets Widget element rows.
+         * @return array
+         */
+        private static function elementor_container( array $widgets ) {
+                return array(
+                        'id'       => self::elementor_id(),
+                        'elType'   => 'container',
+                        'settings' => array(
+                                'content_width' => 'boxed',
+                        ),
+                        'elements' => $widgets,
+                );
         }
 
         /**
@@ -651,6 +686,35 @@ EOT;
                                 return null;
                         }
 
+                        /* v2.7 — Easy Table of Contents: on Elementor pages the
+                         * the_content filter never sees _elementor_data, so the
+                         * auto-inserted TOC never appears. When ezTOC is active
+                         * and the doc has headings, prepend an [ez-toc]
+                         * shortcode widget on fresh documents (never on append,
+                         * where a TOC may already exist). */
+                        if ( 'append' !== $target && class_exists( 'ezTOC' ) ) {
+                                /* Locate the widget list: container docs hold
+                                 * widgets directly; legacy docs hold them
+                                 * under section[0] -> column[0]. */
+                                if ( isset( $sections[0]['elements'][0]['elements'] ) ) {
+                                        $list = &$sections[0]['elements'][0]['elements'];
+                                } else {
+                                        $list = &$sections[0]['elements'];
+                                }
+                                if ( count( (array) $list ) > 1 ) {
+                                        array_unshift(
+                                                $list,
+                                                array(
+                                                        'id'         => self::elementor_id(),
+                                                        'elType'     => 'widget',
+                                                        'widgetType' => 'shortcode',
+                                                        'settings'   => array( 'shortcode' => '[ez-toc]' ),
+                                                )
+                                        );
+                                }
+                                unset( $list );
+                        }
+
                         if ( 'append' === $target ) {
                                 $existing = json_decode( (string) get_post_meta( $post_id, '_elementor_data', true ), true );
                                 if ( is_array( $existing ) && ! empty( $existing ) ) {
@@ -658,23 +722,66 @@ EOT;
                                 }
                         }
 
+                        /* v2.7 — prefer Elementor's own Documents API when the
+                         * plugin is loaded: it normalizes the doc, writes the
+                         * canonical meta and regenerates per-post CSS. Raw
+                         * meta writes leave the CSS cache stale, which is how
+                         * publishes ended up rendering half-empty. */
+                        $used_native = false;
+                        try {
+                                if ( class_exists( '\Elementor\Plugin' ) ) {
+                                        $plugin = \Elementor\Plugin::$instance;
+                                        if ( isset( $plugin->documents ) ) {
+                                                $doc = $plugin->documents->get( $post_id );
+                                                if ( $doc && method_exists( $doc, 'set_elements_data' ) ) {
+                                                        $doc->set_elements_data( $sections );
+                                                        $doc->save( array() );
+                                                        $used_native = true;
+                                                }
+                                        }
+                                }
+                        } catch ( \Throwable $native_error ) {
+                                $used_native = false;
+                        }
+
+                        if ( ! $used_native ) {
+                                update_post_meta( $post_id, '_elementor_data', wp_slash( wp_json_encode( $sections ) ) );
+                                delete_post_meta( $post_id, '_elementor_css' );
+                                delete_post_meta( $post_id, '_elementor_inline_css' );
+                        }
                         update_post_meta( $post_id, '_elementor_edit_mode', 'builder' );
-                        update_post_meta( $post_id, '_elementor_data', wp_slash( wp_json_encode( $sections ) ) );
-                        update_post_meta( $post_id, '_elementor_template_type', 'wp-page' );
-                        delete_post_meta( $post_id, '_elementor_css' );
-                        delete_post_meta( $post_id, '_elementor_inline_css' );
+                        if ( '' === (string) get_post_meta( $post_id, '_elementor_template_type', true ) ) {
+                                update_post_meta( $post_id, '_elementor_template_type', 'wp-page' );
+                        }
+                        if ( ! is_array( get_post_meta( $post_id, '_elementor_page_settings', true ) ) ) {
+                                update_post_meta( $post_id, '_elementor_page_settings', array() );
+                        }
+
+                        /* Regenerate Elementor's compiled CSS — otherwise the
+                         * front keeps serving the stale pre-publish sheet. */
+                        try {
+                                if ( class_exists( '\Elementor\Plugin' ) && isset( \Elementor\Plugin::$instance->files_manager ) && method_exists( \Elementor\Plugin::$instance->files_manager, 'clear_cache' ) ) {
+                                        \Elementor\Plugin::$instance->files_manager->clear_cache();
+                                }
+                        } catch ( \Throwable $css_error ) {
+                                // CSS regen is best-effort.
+                        }
 
                         /* Keep post_content in sync — Elementor renders from
-                         * _elementor_data, but the WP editor, search, excerpts
-                         * and any non-Elementor fallback need real content. An
-                         * empty post_content made publishes look like nothing
-                         * happened to authors checking the editor. */
-                        $synced = get_post( $post_id );
-                        if ( $synced && '' === trim( (string) $synced->post_content ) ) {
+                         * _elementor_data, but the WP editor, search, excerpts,
+                         * Easy TOC and every non-Elementor fallback need real
+                         * content. 'replace' must also overwrite stale bodies;
+                         * previously it only filled EMPTY content. */
+                        $synced           = get_post( $post_id );
+                        $existing_content = $synced ? (string) $synced->post_content : '';
+                        $new_content      = ( 'append' === $target && '' !== trim( $existing_content ) )
+                                ? rtrim( $existing_content ) . "\n\n" . $html
+                                : $html;
+                        if ( $new_content !== $existing_content ) {
                                 wp_update_post(
                                         array(
                                                 'ID'           => $post_id,
-                                                'post_content' => wp_slash( $html ),
+                                                'post_content' => wp_slash( $new_content ),
                                         )
                                 );
                         }

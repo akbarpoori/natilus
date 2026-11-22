@@ -4,7 +4,7 @@ Tags: publishing, content, elementor, seo, gutenberg, classic-editor, bulk, work
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2.6.0
+Stable tag: 2.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,16 @@ Settings → "Transfer settings" → download a portable JSON bundle (API keys e
 Use the WP-CLI commands: `wp kic queue --action=run` and `wp kic tokens --days=7`.
 
 == Changelog ==
+
+= 2.7.0 =
+* Elementor: native Documents API write (normalize + CSS regen) with raw-meta fallback, clear_cache after publish, _elementor_page_settings set
+* Elementor: Flexbox Container layout auto-used on Elementor >= 3.16 (legacy section/column only for older installs)
+* Elementor: «open in Elementor» link after publish; post_content now also synced on replace (not only when empty)
+* Easy Table of Contents: [ez-toc] shortcode widget auto-prepended on Elementor docs when ezTOC is active; stable heading IDs (kic-hN) added to all published h2-h6 for TOC anchors
+* Prepublish: readability checks (long sentences >30w, wall-of-text paragraphs >120w), TOC hint for heading-rich posts, duplicate-title guard
+* Schema: Article JSON-LD now emitted for every Natilus-published post even without an SEO payload; featured image preferred as schema image
+* Feature: optional «مطالب مرتبط» block (3 same-category posts) appended on publish — Settings > ویژگی‌ها
+* Publish flushes the post cache so fresh content shows immediately
 
 = 2.6.0 =
 * Fix: rollback now restores full publish state (Elementor data, featured image, SEO, kicker/subtitle, terms) — not just post_content

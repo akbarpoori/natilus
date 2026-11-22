@@ -115,12 +115,18 @@ final class KIC_SEO_Schema {
 
                 $raw = get_post_meta( $post_id, '_kic_jsonld', true );
                 if ( ! is_string( $raw ) || '' === $raw ) {
-                        return;
+                        /* v2.7 — still emit a bare Article node for
+                         * Natilus-published posts that carried no SEO
+                         * payload (publish_ready without organize). */
+                        if ( ! get_post_meta( $post_id, '_kic_generated', true ) ) {
+                                return;
+                        }
+                        $raw = '{}';
                 }
 
                 $stored = json_decode( $raw, true );
                 if ( ! is_array( $stored ) ) {
-                        return;
+                        $stored = array();
                 }
 
                 $description = isset( $stored['description'] ) ? (string) $stored['description'] : '';
@@ -152,6 +158,16 @@ final class KIC_SEO_Schema {
                         $image = esc_url_raw( trim( $img_match[1] ) );
                         if ( '' !== $image ) {
                                 $article['image'] = $image;
+                        }
+                }
+
+                /* Featured image wins as the schema image when present. */
+                if ( function_exists( 'has_post_thumbnail' ) && has_post_thumbnail( $post_id ) ) {
+                        $thumb = function_exists( 'wp_get_attachment_image_url' )
+                                ? wp_get_attachment_image_url( (int) get_post_thumbnail_id( $post_id ), 'large' )
+                                : '';
+                        if ( is_string( $thumb ) && '' !== $thumb ) {
+                                $article['image'] = $thumb;
                         }
                 }
 

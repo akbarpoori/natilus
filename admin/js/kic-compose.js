@@ -912,8 +912,11 @@
                 }
 
                 if (target === 'draft_new' || !KIC.postId) {
-                        if (data && data.edit_url) {
-                                toastLink('نوشته ساخته شد — ', 'باز کردن', String(data.edit_url));
+                        /* Prefer the real Elementor editor when that pipeline
+                         * handled the publish. */
+                        var openUrl = (data && data.elementor_url) ? String(data.elementor_url) : (data && data.edit_url ? String(data.edit_url) : '');
+                        if (openUrl) {
+                                toastLink('نوشته ساخته شد — ', data && data.elementor_url ? 'باز کردن در المنتور' : 'باز کردن', openUrl);
                         } else {
                                 toast('نوشتهٔ جدید ساخته شد.', 'success');
                         }

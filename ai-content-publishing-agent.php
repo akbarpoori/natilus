@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Natilus
  * Description:       Natilus publishes your ready-made content to WordPress exactly as written — kicker/subtitle synced with your theme, media import, galleries, featured image, Elementor/WPBakery/Gutenberg/Classic layouts, SEO meta, drip queue, rollback. AI helpers optional. https://github.com/akbarpoori/natilus | انتشارگر محتوای آماده برای وردپرس
- * Version:           2.6.0
+ * Version:           2.7.0
  * Requires at least: 5.8
  * Requires PHP:      7.0
  * Author:            Meysam Akbarpoori
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         exit;
 }
 
-define( 'KIC_VERSION', '2.6.0' );
+define( 'KIC_VERSION', '2.7.0' );
 define( 'KIC_FILE', __FILE__ );
 define( 'KIC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KIC_URL', plugin_dir_url( __FILE__ ) );
@@ -609,6 +609,34 @@ function kic_kses_article( $html ) {
         );
 
         return $html;
+}
+
+/**
+ * Assign stable slug IDs to h2-h6 headings that lack one — required for
+ * Easy TOC / LuckyWP anchors and internal deep links. Existing IDs are
+ * never touched; generated slugs stay unique within the document.
+ *
+ * @param string $html Sanitized article HTML.
+ * @return string
+ */
+function kic_add_heading_ids( $html ) {
+        $html = (string) $html;
+        if ( '' === trim( $html ) || ! preg_match( '/<h[2-6][ >]/i', $html ) ) {
+                return $html;
+        }
+        $n = 0;
+        return preg_replace_callback(
+                '/<h([2-6])(\s[^>]*)?>/i',
+                function ( $m ) use ( &$n ) {
+                        $attrs = isset( $m[2] ) ? $m[2] : '';
+                        if ( preg_match( '/\sid\s*=/i', $attrs ) ) {
+                                return $m[0]; // already anchored.
+                        }
+                        $n++;
+                        return '<h' . strtolower( $m[1] ) . ' id="kic-h' . $n . '"' . $attrs . '>';
+                },
+                $html
+        );
 }
 
 KIC_Plugin::instance();
