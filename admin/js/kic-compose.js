@@ -1096,8 +1096,10 @@
                         placeholder: T('موضوع یا دستور مقاله را بنویسید — مثلاً: مقاله‌ای ۸۰۰ کلمه‌ای دربارهٔ فواید خواب کافی برای وبلاگ سلامت')
                 });
                 if (!configured) {
-                        els.genPrompt.disabled = true;
-                        els.genPrompt.placeholder = T('ابتدا یک ارائه‌دهنده در «تنظیمات Natilus» پیکربندی کنید.');
+                        /* Prompt stays editable — without a provider the local
+                         * H1:/H2:/• marker parser still organizes the text, and
+                         * the draft prompt is kept for when one is set up. */
+                        els.genPrompt.placeholder = T('بدون ارائه‌دهنده: متن با نشانه‌های H1:/H2:/• به‌صورت محلی چیده می‌شود. برای چینش هوشمند، ارائه‌دهنده را در «تنظیمات Natilus» تنظیم کنید.');
                 }
 
                 els.genImage = h('input', { type: 'checkbox', class: 'kic-check', id: 'kic-f-gen-image', value: '1' });
@@ -1132,12 +1134,15 @@
                                 checkRow(els.genImage, T('تولید تصویر با هوش مصنوعی')),
                                 checkRow(els.genSlugEn, T('نامک URL را به انگلیسی بساز'))
                         ]),
-                        h('div', { class: 'kic-actions' }, configured ? [els.btnGenerate] : []),
+                        h('div', { class: 'kic-actions' }, [els.btnGenerate]),
                         h('div', { class: 'kic-statusline' }, [els.genSpinner, els.genStatus])
                 ]);
 
-                if (!configured) {
-                        els.btnGenerate.classList.add('kic-hidden');
+                if (!configured && els.btnGenerate) {
+                        /* Without a provider the button still runs — the local
+                         * marker parser handles structured text, and the server
+                         * explains the rest. Label it honestly. */
+                        els.btnGenerate.textContent = T('چینش بدون هوش مصنوعی (محلی)');
                 }
 
                 /* ---------- Step 2: preview (hidden until generated) ---- */

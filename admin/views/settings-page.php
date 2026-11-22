@@ -145,7 +145,12 @@ $kic_fa_num = function ( $n ) { return number_format( (float) $n ); };
                                                 dir="ltr" spellcheck="false"
                                                 placeholder="gpt-4o-mini"
                                                 value="<?php echo esc_attr( (string) $kic_settings['model'] ); ?>" />
-                                        <p class="description">شناسهٔ مدل؛ مثل gpt-4o-mini یا llama-3.3-70b-versatile. برای انتخاب از فهرست، از تب «زنجیرهٔ مدل‌ها» دکمهٔ «بارگذاری مدل‌ها» را بزنید.</p>
+                                        <div class="kic-model-picker" style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                                <button type="button" class="button" id="kic-model-load">بارگذاری مدل‌ها از ارائه‌دهنده</button>
+                                                <select id="kic-model-list" dir="ltr" style="min-width:220px;display:none"></select>
+                                                <span id="kic-model-load-status" class="description"></span>
+                                        </div>
+                                        <p class="description">شناسهٔ مدل؛ مثل gpt-4o-mini یا llama-3.3-70b-versatile. دکمهٔ «بارگذاری مدل‌ها» فهرست کامل مدل‌های ارائه‌دهنده را می‌خواند و می‌توانید از آن انتخاب کنید.</p>
                                 </div>
                         </div>
 

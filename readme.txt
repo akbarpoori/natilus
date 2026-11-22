@@ -4,7 +4,7 @@ Tags: publishing, content, elementor, seo, gutenberg, classic-editor, bulk, work
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2.7.1
+Stable tag: 2.7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,10 @@ Settings → "Transfer settings" → download a portable JSON bundle (API keys e
 Use the WP-CLI commands: `wp kic queue --action=run` and `wp kic tokens --days=7`.
 
 == Changelog ==
+
+= 2.7.2 =
+* Fix: prompt box is always editable — without a provider the local H1:/H2: parser still organizes (button relabelled «چینش بدون هوش مصنوعی (محلی)»)
+* Feature: «بارگذاری مدل‌ها از ارائه‌دهنده» button next to the chat-model field — fetches the provider /models list into a dropdown, picking one fills the field
 
 = 2.7.1 =
 * Fix: iframe/video/audio/details/pre blocks now map to Elementor html widgets — embeds were silently dropped from the Elementor doc (post_content had them, _elementor_data did not)

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Natilus
  * Description:       Natilus publishes your ready-made content to WordPress exactly as written — kicker/subtitle synced with your theme, media import, galleries, featured image, Elementor/WPBakery/Gutenberg/Classic layouts, SEO meta, drip queue, rollback. AI helpers optional. https://github.com/akbarpoori/natilus | انتشارگر محتوای آماده برای وردپرس
- * Version:           2.7.1
+ * Version:           2.7.2
  * Requires at least: 5.8
  * Requires PHP:      7.0
  * Author:            Meysam Akbarpoori
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         exit;
 }
 
-define( 'KIC_VERSION', '2.7.1' );
+define( 'KIC_VERSION', '2.7.2' );
 define( 'KIC_FILE', __FILE__ );
 define( 'KIC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KIC_URL', plugin_dir_url( __FILE__ ) );

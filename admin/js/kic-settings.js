@@ -310,6 +310,60 @@
         }
 
         /**
+         * «بارگذاری مدل‌ها» next to the main chat-model field: reads the
+         * /models endpoint of the base URL in the form, fills a dropdown, and
+         * picking one writes it into the model input. Falls back to preset
+         * model lists when the endpoint does not answer.
+         */
+        function onModelFieldLoad( e ) {
+                e.preventDefault();
+                var baseUrl = String( $( '#kic-base-url' ).val() || '' ).trim();
+                var apiKey  = String( $( '#kic-api-key' ).val() || '' ).trim();
+                var $status = $( '#kic-model-load-status' );
+                var $list   = $( '#kic-model-list' );
+                var $btn    = $( '#kic-model-load' );
+
+                if ( ! baseUrl ) {
+                        $status.text( 'ابتدا آدرس پایه ارائه‌دهنده را وارد و ذخیره کنید.' );
+                        return;
+                }
+
+                $btn.prop( 'disabled', true );
+                $status.text( 'در حال بارگذاری مدل‌ها…' );
+
+                var params = { action: 'kic_list_provider_models', nonce: KIC.nonce, base_url: baseUrl, refresh: 1 };
+                if ( apiKey ) {
+                        params.api_key_plain = apiKey;
+                }
+
+                $.post( KIC.ajaxurl, params ).done( function ( response ) {
+                        var data = ( response && response.data ) || {};
+                        var models = data.models || [];
+                        var message = data.message || '';
+
+                        if ( ! models.length && data.fallback && data.fallback.length ) {
+                                models = data.fallback;
+                        }
+                        if ( ! models.length ) {
+                                $status.text( message || 'هیچ مدلی یافت نشد — شناسه را دستی بنویسید.' );
+                                return;
+                        }
+
+                        var current = String( $( '#kic-model' ).val() || '' ).trim();
+                        $list.empty().append( $( '<option/>' ).val( '' ).text( '— انتخاب مدل —' ) );
+                        $.each( models, function ( i, m ) {
+                                $list.append( $( '<option/>' ).val( m ).text( m ).prop( 'selected', m === current ) );
+                        } );
+                        $list.show();
+                        $status.text( models.length + ' مدل یافت شد' + ( message ? ' — ' + message : '' ) );
+                } ).fail( function () {
+                        $status.text( 'خطای ارتباط با سرور.' );
+                } ).always( function () {
+                        $btn.prop( 'disabled', false );
+                } );
+        }
+
+        /**
          * Load the /models list of the base URL entered in the form and fill
          * the model priority slots (first model becomes the default).
          *
@@ -605,5 +659,12 @@
                 $( document ).on( 'click', '.kic-chain-delete', function () { onChainDelete( $( this ).closest( '.kic-chain-card' ) ); } );
                 $( document ).on( 'click', '.kic-chain-edit', function () { onChainEdit( $( this ).closest( '.kic-chain-card' ) ); } );
                 $( document ).on( 'click', '.kic-chain-test', function () { onChainTest( $( this ).closest( '.kic-chain-card' ) ); } );
+                $( document ).on( 'click', '#kic-model-load', onModelFieldLoad );
+                $( document ).on( 'change', '#kic-model-list', function () {
+                        var v = String( $( this ).val() || '' );
+                        if ( v ) {
+                                $( '#kic-model' ).val( v );
+                        }
+                } );
         } );
 }( jQuery ) );
