@@ -301,6 +301,7 @@ final class KIC_Generator {
                                 'seo_title'        => $article['seo_title'],
                                 'seo_description'  => $article['seo_description'],
                                 'focus_keyword'    => $article['focus_keyword'],
+                                'slug_en'          => $article['slug_en'],
                                 'model'            => isset( $result['model'] ) ? (string) $result['model'] : '',
                                 'usage'            => isset( $result['usage'] ) && is_array( $result['usage'] ) ? $result['usage'] : array(),
                                 'read_only'        => true,
@@ -374,10 +375,11 @@ final class KIC_Generator {
                         . "\nHard rules:"
                         . "\n- Write in the SAME language as the author prompt."
                         . "\n- Output ONLY a single JSON object — no markdown fences, no commentary, no preamble."
-                        . "\n- JSON keys exactly: \"title\", \"kicker\", \"subtitle\", \"html\", \"seo_title\", \"seo_description\", \"focus_keyword\"."
+                        . "\n- JSON keys exactly: \"title\", \"kicker\", \"subtitle\", \"html\", \"seo_title\", \"seo_description\", \"focus_keyword\", \"slug_en\"."
                         . "\n- \"html\" is the FULL article body as clean post HTML (p, h2/h3, ul/ol/li, strong, em, blockquote, figure/img only when the prompt asks for images). No <html>/<body> wrappers, no JSON inside html."
                         . "\n- \"kicker\" is a short overline label (1-4 words) or \"\"; \"subtitle\" is a one-sentence standfirst or \"\"."
                         . "\n- \"seo_title\" <= 60 chars, \"seo_description\" <= 155 chars, \"focus_keyword\" 1-3 words."
+                        . "\n- \"slug_en\" is the English URL slug (kebab-case, lowercase ASCII, hyphens) translated from the title."
                         . "\n- No placeholders like [image] or lorem ipsum — write real, specific content.";
         }
 
@@ -392,12 +394,13 @@ final class KIC_Generator {
                 return 'You are an expert WordPress content ORGANIZER (چینش). The site author gives you their raw text/notes plus an instruction. You restructure THAT text into ONE complete, publication-ready article.'
                         . "\nHard rules:"
                         . "\n- Output ONLY a single JSON object — no markdown fences, no commentary."
-                        . "\n- JSON keys exactly: \"title\", \"kicker\", \"subtitle\", \"html\", \"seo_title\", \"seo_description\", \"focus_keyword\"."
+                        . "\n- JSON keys exactly: \"title\", \"kicker\", \"subtitle\", \"html\", \"seo_title\", \"seo_description\", \"focus_keyword\", \"slug_en\"."
                         . "\n- \"html\" is the organized article body as clean post HTML (p, h2/h3, ul/ol/li, strong, em, blockquote). No <html>/<body> wrappers."
                         . "\n- Keep ALL the source's information and its language — reorganize, reorder, retitle, retitle headings and fix flow; never invent facts, never drop whole sections."
                         . "\n- Improve obvious structure: introduce headings where the text has sections, convert run-on lists to ul/ol, split giant paragraphs."
                         . "\n- \"kicker\" is a short overline label (1-4 words) or \"\"; \"subtitle\" is a one-sentence standfirst or \"\"."
-                        . "\n- \"seo_title\" <= 60 chars, \"seo_description\" <= 155 chars, \"focus_keyword\" 1-3 words.";
+                        . "\n- \"seo_title\" <= 60 chars, \"seo_description\" <= 155 chars, \"focus_keyword\" 1-3 words."
+                        . "\n- \"slug_en\" is the English URL slug (kebab-case, lowercase ASCII, hyphens) translated from the title.";
         }
 
         /**
@@ -461,6 +464,7 @@ final class KIC_Generator {
                         'seo_title'       => '',
                         'seo_description' => '',
                         'focus_keyword'   => '',
+                        'slug_en'         => '',
                 );
 
                 $content = trim( (string) $content );
@@ -488,6 +492,7 @@ final class KIC_Generator {
                                 'seo_title'       => $this->short_text( isset( $decoded['seo_title'] ) ? $decoded['seo_title'] : '', 120 ),
                                 'seo_description' => $this->short_text( isset( $decoded['seo_description'] ) ? $decoded['seo_description'] : '', 200 ),
                                 'focus_keyword'   => $this->short_text( isset( $decoded['focus_keyword'] ) ? $decoded['focus_keyword'] : '', 80 ),
+                                'slug_en'         => sanitize_title( (string) ( isset( $decoded['slug_en'] ) ? $decoded['slug_en'] : '' ) ),
                         );
                 }
 

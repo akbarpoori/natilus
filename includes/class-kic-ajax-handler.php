@@ -206,6 +206,7 @@ final class KIC_Ajax_Handler {
                         'seo_title'       => '',
                         'seo_description' => '',
                         'focus_keyword'   => '',
+                        'og_image'        => '',
                         'faq'             => array(),
                         'alt_texts'       => array(),
                 );
@@ -224,6 +225,9 @@ final class KIC_Ajax_Handler {
 
                 if ( isset( $raw['focus_keyword'] ) ) {
                         $seo['focus_keyword'] = sanitize_text_field( (string) $raw['focus_keyword'] );
+                }
+                if ( isset( $raw['og_image'] ) ) {
+                        $seo['og_image'] = esc_url_raw( (string) $raw['og_image'] );
                 }
 
                 if ( isset( $raw['faq'] ) && is_array( $raw['faq'] ) ) {
@@ -290,6 +294,7 @@ final class KIC_Ajax_Handler {
                         'editor'   => $editor,
                         'builder_mode' => $builder_mode,
                         'skill_id' => $skill_id,
+                        'featured_url' => isset( $raw['featured_url'] ) ? esc_url_raw( (string) $raw['featured_url'] ) : '',
                 );
         }
 
@@ -369,10 +374,30 @@ final class KIC_Ajax_Handler {
                 // Remove leftover pipeline markers before injection.
                 $html = KIC_Content_Injector::instance()->strip_markers( $html );
 
-                // 4) Featured image.
+                // 4) Featured image — the user-picked URL wins; otherwise first item.
                 if ( $opts['featured'] && ! empty( $ids ) ) {
                         $featured_id = (int) reset( $ids );
+                        if ( '' !== $opts['featured_url'] ) {
+                                foreach ( $items as $item ) {
+                                        $source = isset( $item['source'] ) ? (string) $item['source'] : '';
+                                        $local  = isset( $item['url'] ) ? (string) $item['url'] : '';
+                                        if ( '' !== $source && ( $source === $opts['featured_url'] || $local === $opts['featured_url'] ) ) {
+                                                $featured_id = (int) $item['id'];
+                                                break;
+                                        }
+                                }
+                        }
                         KIC_Media_Handler::instance()->set_featured( $post_id, $featured_id );
+                }
+
+                /* OG/Twitter image for the SEO meta — the featured attachment's
+                 * URL, or the first imported image when no featured was set. */
+                if ( empty( $seo['og_image'] ) ) {
+                        if ( $featured_id ) {
+                                $seo['og_image'] = (string) wp_get_attachment_url( $featured_id );
+                        } elseif ( ! empty( $items ) ) {
+                                $seo['og_image'] = isset( $items[0]['url'] ) ? (string) $items[0]['url'] : '';
+                        }
                 }
 
                 // 5) JSON-LD schema.
@@ -619,6 +644,7 @@ final class KIC_Ajax_Handler {
                 $kicker   = isset( $params['kicker'] ) ? sanitize_text_field( (string) $params['kicker'] ) : '';
                 $subtitle = isset( $params['subtitle'] ) ? sanitize_text_field( (string) $params['subtitle'] ) : '';
                 $status = ( isset( $params['status'] ) && 'publish' === (string) $params['status'] ) ? 'publish' : 'draft';
+                $slug   = isset( $params['slug'] ) ? sanitize_title( (string) $params['slug'] ) : '';
 
                 // Categories/tags only apply to a freshly created post; the
                 // current post keeps whatever its own WordPress sidebar says.
@@ -644,6 +670,7 @@ final class KIC_Ajax_Handler {
                                         'post_status'  => $status,
                                         'post_type'    => 'post',
                                         'post_author'  => get_current_user_id(),
+                                        'post_name'    => $slug,
                                 ),
                                 true
                         );
@@ -689,6 +716,7 @@ final class KIC_Ajax_Handler {
                                 'builder_mode' => isset( $params['builder_mode'] ) ? (string) $params['builder_mode'] : 'auto',
                                 'gallery'      => ! empty( $params['gallery'] ),
                                 'featured'     => ! empty( $params['featured'] ),
+                                'featured_url' => isset( $params['featured_url'] ) ? esc_url_raw( (string) $params['featured_url'] ) : '',
                         ),
                         'media_urls' => isset( $params['media_urls'] ) ? $params['media_urls'] : '',
                 );
@@ -712,6 +740,9 @@ final class KIC_Ajax_Handler {
                         $update = array( 'ID' => $post_id );
                         if ( '' !== $title ) {
                                 $update['post_title'] = wp_slash( $title );
+                        }
+                        if ( '' !== $slug ) {
+                                $update['post_name'] = $slug;
                         }
                         if ( 'publish' === $status ) {
                                 $update['post_status'] = 'publish';

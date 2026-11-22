@@ -4,7 +4,7 @@ Tags: publishing, content, elementor, seo, gutenberg, classic-editor, bulk, work
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2.4.0
+Stable tag: 2.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,11 @@ Settings → "Transfer settings" → download a portable JSON bundle (API keys e
 Use the WP-CLI commands: `wp kic queue --action=run` and `wp kic tokens --days=7`.
 
 == Changelog ==
+
+= 2.5.0 =
+* Import-first layout: content box on top, prompt below — organize mode only, no silent generation
+* Site-like preview before publishing + media thumbnail grid with one-click featured pick
+* English-slug checkbox, auto editor detection (Elementor/Classic/Gutenberg), OG/Twitter meta for Yoast/Rank Math, rel=follow/nofollow link rules
 
 = 2.4.0 =
 * THE GENERATION RELEASE — optional prompt-based article writing as a clear 3-step flow: (۱) give a topic/instruction (or paste raw notes) → (۲) review the laid-out preview (title, kicker, subtitle, body, SEO) → (۳) confirm and continue to the normal publish button. The configured provider chain drafts a complete publication-ready article straight into the SAME content box — for first publishes and brand-new drafts alike. Nothing is written until you confirm AND click «انتشار محتوا».

@@ -589,12 +589,14 @@
                                 els.cats.appendChild(h('option', { value: String(c.id), text: String(c.title || c.id) }));
                         }
                 });
-                els.tags = h('input', {
+                /* Post slug — user-editable; auto-filled from the title or
+                 * the English-slug translation checkbox during organize. */
+                els.slug = h('input', {
                         type: 'text',
-                        class: 'kic-input',
-                        id: 'kic-f-tags',
-                        dir: 'auto',
-                        placeholder: 'برچسب‌ها، با کاما جدا شوند'
+                        class: 'kic-input kic-ltr',
+                        id: 'kic-f-slug',
+                        dir: 'ltr',
+                        placeholder: 'my-post-slug'
                 });
 
                 /* v2.2 — the full headline set: روتیتر (kicker, above the
@@ -635,7 +637,7 @@
 
                 var newPostGrid = h('div', { class: 'kic-grid' }, [
                         field('kic-f-cats', 'دسته (نوشتهٔ جدید)', els.cats),
-                        field('kic-f-tags', 'برچسب‌ها (نوشتهٔ جدید)', els.tags)
+                        field('kic-f-slug', 'نامک (URL)', els.slug)
                 ]);
                 els.newPostBox = h('div', { class: 'kic-newpost' }, [newPostGrid]);
                 if (els.target.value !== 'draft_new') {
@@ -724,10 +726,10 @@
                 }
                 panel.appendChild(titleStatusGrid);
                 panel.appendChild(els.newPostBox);
+                panel.appendChild(rawField);
                 if (genBox) {
                         panel.appendChild(genBox);
                 }
-                panel.appendChild(rawField);
                 panel.appendChild(seoBox);
 
                 /* v2.3 — prompt-based edit of the CURRENT (saved) post. */
@@ -819,9 +821,11 @@
                                 editor: KIC.editor === 'gutenberg' ? 'gutenberg' : 'classic',
                                 gallery: els.gallery && els.gallery.checked ? 1 : '',
                                 featured: els.featured && els.featured.checked ? 1 : '',
+                                featured_url: els.featuredUrl ? String(els.featuredUrl) : '',
                                 media_urls: mediaUrls.join('\n'),
                                 cats: isNew && els.cats ? (els.cats.value || '') : '',
-                                tags: isNew && els.tags ? (els.tags.value || '') : '',
+                                tags: '',
+                                slug: isNew && els.slug ? (els.slug.value || '') : '',
                                 seo: JSON.stringify({
                                         seo_title: els.seoQuickTitle ? els.seoQuickTitle.value : '',
                                         seo_description: els.seoQuickDesc ? els.seoQuickDesc.value : '',
@@ -926,8 +930,8 @@
                         if (els.subtitle) {
                                 els.subtitle.value = '';
                         }
-                        if (els.tags) {
-                                els.tags.value = '';
+                        if (els.slug) {
+                                els.slug.value = '';
                         }
                 }
                 state.termSuggestions = [];
@@ -1049,6 +1053,8 @@
                         els.genImage.disabled = true;
                 }
 
+                els.genSlugEn = h('input', { type: 'checkbox', class: 'kic-check', id: 'kic-f-gen-slug-en', value: '1', checked: true });
+
                 els.btnGenerate = h('button', {
                         class: 'kic-btn kic-btn--primary',
                         type: 'button',
@@ -1059,18 +1065,21 @@
                 els.genSpinner = h('span', { class: 'kic-spinner kic-hidden', 'aria-hidden': 'true' });
 
                 var hintText = configured
-                        ? T('پرامپت را بنویسید یا متن خام را بچسبانید — هوش مصنوعی پیش‌نویس کامل (عنوان، روتیتر، زیرتیتر، متن و سئو) را می‌چیند و در مرحلهٔ ۲ به‌صورت پیش‌نمایش می‌آورد. هیچ‌چیز تا تأیید شما و کلیک «انتشار محتوا» منتشر نمی‌شود.')
-                        : T('تولید با پرامپت به یک ارائه‌دهندهٔ هوش مصنوعی نیاز دارد — هر سرویس سازگار با OpenAI (یا سرور محلی مثل Ollama/LM Studio) در «تنظیمات Natilus» کافی است. انتشار محتوای آماده بدون آن هم کامل کار می‌کند.');
+                        ? T('متن آمادهٔ خود را در باکس بالایی بچسبانید، سپس در این پرامپت بنویسید چه کاری لازم است (چینش، عنوان‌بندی، سئو…) — نتیجه در مرحلهٔ ۲ پیش‌نمایش می‌آید و تا کلیک «انتشار محتوا» منتشر نمی‌شود.')
+                        : T('چینش با پرامپت به یک ارائه‌دهندهٔ هوش مصنوعی نیاز دارد — هر سرویس سازگار با OpenAI (یا سرور محلی مثل Ollama/LM Studio) در «تنظیمات Natilus» کافی است. انتشار محتوای آماده بدون آن هم کامل کار می‌کند.');
                 var hint = h('div', { class: 'kic-note', text: hintText });
 
                 els.genStep1 = h('div', { class: 'kic-gen-step is-active' }, [
                         h('div', { class: 'kic-gen-step-title' }, [
                                 h('span', { class: 'kic-gen-stepnum', text: '۱' }),
-                                h('span', { text: T('پرامپت یا متن خام را بدهید') })
+                                h('span', { text: T('دستور چینش را بنویسید (اختیاری)') })
                         ]),
                         hint,
-                        field('kic-f-gen-prompt', T('پرامپت تولید'), els.genPrompt),
-                        checkRow(els.genImage, T('تولید تصویر با هوش مصنوعی و افزودن به فهرست رسانه')),
+                        field('kic-f-gen-prompt', T('دستور (پرامپت)'), els.genPrompt),
+                        h('div', { class: 'kic-checks' }, [
+                                checkRow(els.genImage, T('تولید تصویر با هوش مصنوعی')),
+                                checkRow(els.genSlugEn, T('نامک URL را به انگلیسی بساز'))
+                        ]),
                         h('div', { class: 'kic-actions' }, configured ? [els.btnGenerate] : []),
                         h('div', { class: 'kic-statusline' }, [els.genSpinner, els.genStatus])
                 ]);
@@ -1193,10 +1202,13 @@
                 }
                 var prompt = (els.genPrompt.value || '').trim();
                 var source = els.raw ? (els.raw.value || '') : '';
-                if (!prompt && source.trim().length < 20) {
-                        toast(T('پرامپت را بنویسید — یا متن خام را در باکس محتوا بچسبانید تا هوش مصنوعی آن را بچیند.'), 'info');
-                        els.genPrompt.focus();
+                if (source.trim().length < 20) {
+                        toast(T('متن را در باکس «محتوای کامل نوشته» بچسبانید — Natilus فقط محتوای شما را می‌چیند و چیزی از خودش تولید نمی‌کند.'), 'info');
+                        els.raw.focus();
                         return;
+                }
+                if (!prompt) {
+                        prompt = T('این متن را در قالب یک مقالهٔ کامل بچیند — ساختار، عناوین و جریان را مرتب کن.');
                 }
 
                 state.working = true;
@@ -1230,6 +1242,12 @@
                         fillIfEmpty(els.seoQuickTitle, article.seo_title);
                         fillIfEmpty(els.seoQuickDesc, article.seo_description);
                         fillIfEmpty(els.seoFocusKeyword, article.focus_keyword);
+
+                        /* Slug: English translation when the checkbox is on,
+                         * otherwise WordPress derives it from the title. */
+                        if (els.slug && article.slug_en && els.genSlugEn && els.genSlugEn.checked) {
+                                els.slug.value = String(article.slug_en);
+                        }
 
                         /* Step 2 — preview the draft before anything is
                          * published; the user confirms, then the normal
@@ -1659,7 +1677,17 @@
                                 els.builderMode.value = 'elementor';
                         }
                 } else {
-                        els.builderMode.value = defaultMode;
+                        /* v2.4 — auto pick: Elementor posts → elementor; else
+                         * classic editor → classic; else gutenberg. */
+                        var autoPick = defaultMode;
+                        if (KIC.isElementor && els.builderMode.querySelector('option[value="elementor"]')) {
+                                autoPick = 'elementor';
+                        } else if (KIC.editor === 'gutenberg' && els.builderMode.querySelector('option[value="gutenberg"]')) {
+                                autoPick = 'gutenberg';
+                        } else if (els.builderMode.querySelector('option[value="classic"]')) {
+                                autoPick = 'classic';
+                        }
+                        els.builderMode.value = autoPick;
                 }
         }
 
@@ -1763,11 +1791,74 @@
                         autoNote.textContent = 'وارد کردن خودکار رسانه‌ها غیرفعال است؛ برای انتقال به کتابخانه رسانه از دکمه بالا استفاده کنید.';
                 }
 
+                els.mediaGrid = h('div', { class: 'kic-img-grid' });
+                els.featuredUrl = '';
+
+                /* Live thumbnails: every URL line renders a preview thumb so
+                 * the author SEES the images, picks the featured one (click)
+                 * and can drop bad URLs (✕) before anything is imported. */
+                els.mediaUrls.addEventListener('input', renderMediaThumbs);
+                renderMediaThumbs();
+
                 return h('div', { class: 'kic-panel', 'data-panel': 'media' }, [
                         field('kic-f-media-urls', 'آدرس رسانه‌ها (هر خط یک آدرس)', els.mediaUrls),
+                        els.mediaGrid,
                         h('div', { class: 'kic-actions' }, [els.btnSideload]),
                         autoNote
                 ]);
+        }
+
+        /**
+         * Render thumbnail cards for each URL in the media list. Click =
+         * set as featured image (stored in els.featuredUrl, auto-checks the
+         * featured box); ✕ removes that line.
+         *
+         * @return {void}
+         */
+        function renderMediaThumbs() {
+                if (!els.mediaGrid) {
+                        return;
+                }
+                els.mediaGrid.textContent = '';
+                var urls = mediaLines().filter(function (u) {
+                        return /^https?:\/\//i.test(u);
+                });
+                urls.forEach(function (url) {
+                        var isFeat = els.featuredUrl === url;
+                        var img = h('img', {
+                                src: url,
+                                alt: '',
+                                onerror: function () { card.style.display = 'none'; }
+                        });
+                        var badge = h('span', {
+                                class: 'kic-img-badge',
+                                text: isFeat ? 'شاخص ✓' : 'شاخص',
+                                onclick: function () {
+                                        els.featuredUrl = (els.featuredUrl === url) ? '' : url;
+                                        if (els.featuredUrl !== '' && els.featured) {
+                                                els.featured.checked = true;
+                                        }
+                                        renderMediaThumbs();
+                                }
+                        });
+                        var remove = h('button', {
+                                class: 'kic-img-remove',
+                                type: 'button',
+                                text: '✕',
+                                title: 'حذف از فهرست',
+                                onclick: function () {
+                                        var keep = mediaLines().filter(function (l) { return l !== url; });
+                                        els.mediaUrls.value = keep.join('\n');
+                                        if (els.featuredUrl === url) { els.featuredUrl = ''; }
+                                        renderMediaThumbs();
+                                }
+                        });
+                        var card = h('div', {
+                                class: 'kic-img-thumb' + (isFeat ? ' is-featured' : ''),
+                                title: url
+                        }, [img, badge, remove]);
+                        els.mediaGrid.appendChild(card);
+                });
         }
 
         /**
@@ -2237,6 +2328,54 @@
          * ================================================================ */
 
         /**
+         * Render the final post exactly like the site output — title,
+         * kicker/subtitle, featured image and full body HTML — so the author
+         * reviews the real result before publishing.
+         *
+         * @return {void}
+         */
+        function renderSitePreview() {
+                if (!els.sitePreview) {
+                        return;
+                }
+                var content = els.raw && els.raw.value ? els.raw.value.trim() : '';
+                if (!content) {
+                        toast('ابتدا محتوا را وارد کنید.', 'error');
+                        return;
+                }
+                els.sitePreview.textContent = '';
+                var feat = mediaLines().filter(function (u) { return /^https?:\/\//i.test(u); })[0];
+                var slug = (els.slugField && els.slugField.value) || '';
+                var children = [];
+
+                if (feat && els.featured && els.featured.checked) {
+                        children.push(h('img', { src: feat, class: 'kic-prev-hero' }));
+                }
+                if (els.kicker && els.kicker.value.trim()) {
+                        children.push(h('div', { class: 'kic-preview-kicker', text: els.kicker.value.trim() }));
+                }
+                children.push(h('h1', { class: 'kic-preview-title', text: (els.title && els.title.value.trim()) || T('بدون عنوان') }));
+                if (els.subtitle && els.subtitle.value.trim()) {
+                        children.push(h('p', { class: 'kic-preview-sub', text: els.subtitle.value.trim() }));
+                }
+                if (slug) {
+                        children.push(h('div', {
+                                class: 'kic-muted',
+                                text: 'نامک: ' + slug,
+                                style: 'font-family:monospace;direction:ltr;text-align:right;font-size:11px'
+                        }));
+                }
+                var body = h('div', { class: 'kic-preview-article' });
+                body.innerHTML = content; // kses'd server-side on publish; preview mirrors editor content
+                children.push(body);
+
+                var card = h('div', { class: 'kic-preview' }, children);
+                els.sitePreview.appendChild(card);
+                els.sitePreview.classList.remove('kic-hidden');
+                els.sitePreview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        /**
          * Request internal-link suggestions for the current content.
          *
          * @return {void}
@@ -2315,11 +2454,12 @@
          * @param {string} href   Link URL.
          * @return {{html: string, ok: boolean}}
          */
-        function wrapAnchor(html, anchor, href) {
+        function wrapAnchor(html, anchor, href, rel) {
                 anchor = String(anchor || '').trim();
                 if (!anchor) {
                         return { html: html, ok: false };
                 }
+                var relAttr = rel ? ' rel="' + String(rel) + '"' : '';
                 var lowerHtml = html.toLowerCase();
                 var lowerAnchor = anchor.toLowerCase();
                 var pos = 0;
@@ -2334,13 +2474,28 @@
                         var closeTags = (before.match(/<\/a\s*>/gi) || []).length;
                         var insideTag = (before.lastIndexOf('<') > before.lastIndexOf('>'));
                         if (!insideTag && openTags === closeTags) {
-                                var a = '<a href="' + String(href).replace(/"/g, '&quot;') + '">';
+                                var a = '<a href="' + String(href).replace(/"/g, '&quot;') + '"' + relAttr + '>';
                                 return {
                                         html: html.slice(0, idx) + a + html.slice(idx, idx + anchor.length) + '</a>' + html.slice(idx + anchor.length),
                                         ok: true
                                 };
                         }
                         pos = idx + lowerAnchor.length;
+                }
+        }
+
+        /**
+         * Is a URL off-site? Internal links stay follow (no rel), external
+         * get nofollow by default — per the publish defaults.
+         *
+         * @param {string} url Candidate URL.
+         * @return {boolean}
+         */
+        function isExternalUrl(url) {
+                try {
+                        return new URL(url, location.href).host !== location.host;
+                } catch (e) {
+                        return false;
                 }
         }
 
@@ -2409,7 +2564,8 @@
 
                 var applied = 0;
                 picks.forEach(function (item) {
-                        var res = wrapAnchor(html, item.anchor, item.url);
+                        var rel = isExternalUrl(item.url) ? 'nofollow noopener' : '';
+                        var res = wrapAnchor(html, item.anchor, item.url, rel);
                         if (res.ok) {
                                 html = res.html;
                                 applied++;
@@ -2444,6 +2600,23 @@
                         class: 'kic-notice',
                         text: T('چک‌لیست فقط هشدار فنی است و هیچ‌چیز را خودکار اعمال نمی‌کند. پیشنهادهای دسته/نامک کاملاً اختیاری‌اند و فقط با کلیک شما اعمال می‌شوند — بدون تنظیم ارائه‌دهنده هم انتشار کامل کار می‌کند.')
                 }));
+
+                /* --- Site-like preview of the final post (v2.4) ----------- */
+
+                els.sitePreviewBtn = h('button', {
+                        class: 'kic-btn kic-btn--primary',
+                        type: 'button',
+                        onclick: renderSitePreview
+                }, [T('پیش‌نمایش نوشته روی سایت')]);
+                els.sitePreview = h('div', { class: 'kic-site-preview kic-hidden' });
+
+                panel.appendChild(h('details', { class: 'kic-imgpanel', open: true }, [
+                        h('summary', { text: T('پیش‌نمایش نوشته (مثل خروجی سایت)') }),
+                        h('div', { class: 'kic-imgpanel-body' }, [
+                                h('div', { class: 'kic-actions' }, [els.sitePreviewBtn]),
+                                els.sitePreview
+                        ])
+                ]));
 
                 /* --- Pre-publish checklist (read-only diagnostics) --------- */
 

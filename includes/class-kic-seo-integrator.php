@@ -77,6 +77,7 @@ final class KIC_SEO_Integrator {
                 $title       = isset( $seo['seo_title'] ) ? sanitize_text_field( (string) $seo['seo_title'] ) : '';
                 $description = isset( $seo['seo_description'] ) ? sanitize_text_field( (string) $seo['seo_description'] ) : '';
                 $focus_kw    = isset( $seo['focus_keyword'] ) ? sanitize_text_field( (string) $seo['focus_keyword'] ) : '';
+                $og_image    = isset( $seo['og_image'] ) ? esc_url_raw( (string) $seo['og_image'] ) : '';
 
                 // Always store our own payload (feeds the standalone fallback + UI).
                 update_post_meta(
@@ -89,12 +90,25 @@ final class KIC_SEO_Integrator {
                         )
                 );
 
+                /* Open Graph / Twitter social payload — written for Yoast and
+                 * Rank Math post fields when present, plus the canonical _kic
+                 * store so the standalone fallback can print og:* tags too. */
+                update_post_meta( $post_id, '_kic_og_image', $og_image );
+
                 // Rank Math post-level SEO fields.
                 if ( class_exists( 'RankMath' ) ) {
                         update_post_meta( $post_id, 'rank_math_title', $title );
                         update_post_meta( $post_id, 'rank_math_description', $description );
                         if ( '' !== $focus_kw ) {
                                 update_post_meta( $post_id, 'rank_math_focus_keyword', $focus_kw );
+                        }
+                        update_post_meta( $post_id, 'rank_math_facebook_title', $title );
+                        update_post_meta( $post_id, 'rank_math_facebook_description', $description );
+                        update_post_meta( $post_id, 'rank_math_twitter_title', $title );
+                        update_post_meta( $post_id, 'rank_math_twitter_description', $description );
+                        if ( '' !== $og_image ) {
+                                update_post_meta( $post_id, 'rank_math_facebook_image', $og_image );
+                                update_post_meta( $post_id, 'rank_math_twitter_image', $og_image );
                         }
                 }
 
@@ -104,6 +118,14 @@ final class KIC_SEO_Integrator {
                         update_post_meta( $post_id, '_yoast_wpseo_metadesc', $description );
                         if ( '' !== $focus_kw ) {
                                 update_post_meta( $post_id, '_yoast_wpseo_focuskw', $focus_kw );
+                        }
+                        update_post_meta( $post_id, '_yoast_wpseo_opengraph-title', $title );
+                        update_post_meta( $post_id, '_yoast_wpseo_opengraph-description', $description );
+                        update_post_meta( $post_id, '_yoast_wpseo_twitter-title', $title );
+                        update_post_meta( $post_id, '_yoast_wpseo_twitter-description', $description );
+                        if ( '' !== $og_image ) {
+                                update_post_meta( $post_id, '_yoast_wpseo_opengraph-image', $og_image );
+                                update_post_meta( $post_id, '_yoast_wpseo_twitter-image', $og_image );
                         }
                 }
 
