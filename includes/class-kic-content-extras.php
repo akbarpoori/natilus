@@ -91,7 +91,19 @@ class KIC_Content_Extras {
                 if ( ! $post_id ) {
                         return $content;
                 }
+                return self::weave_links( (string) $content, $post_id );
+        }
 
+        /**
+         * The actual link-weaving, separated from WP-context guards so it is
+         * unit-testable and reusable (e.g. previews). Non-destructive: the
+         * input is transformed and returned, never stored.
+         *
+         * @param string $content HTML to weave links into.
+         * @param int    $post_id Current post id (excluded as a target).
+         * @return string
+         */
+        public static function weave_links( $content, $post_id ) {
                 /* Candidate targets: published posts/pages with a title long
                  * enough to be a safe link anchor (short titles over-match). */
                 $targets = wp_cache_get( 'kic_smart_targets', 'kic' );
@@ -135,20 +147,28 @@ class KIC_Content_Extras {
                                         if ( false === mb_strpos( $inner, $t['title'] ) || false !== strpos( $inner, 'href="' . $t['url'] . '"' ) ) {
                                                 continue;
                                         }
-                                        /* Only link text OUTSIDE existing anchors — never nest <a> in <a>. */
-                                        $segs = preg_split( '/(<a\b.*?<\/a>)/is', $inner, -1, PREG_SPLIT_DELIM_CAPTURE );
+                                        /* Only link text OUTSIDE existing anchors — never nest <a> in <a>,
+                                         * and skip the target entirely when the title is already linked. */
+                                        $segs        = preg_split( '/(<a\b.*?<\/a>)/is', $inner, -1, PREG_SPLIT_DELIM_CAPTURE );
+                                        $already     = false;
+                                        $free_target = false;
                                         foreach ( (array) $segs as $si => $seg ) {
-                                                if ( 1 === ( $si % 2 ) || false === mb_strpos( $seg, $t['title'] ) ) {
-                                                        continue;
+                                                if ( 1 === ( $si % 2 ) ) {
+                                                        if ( false !== mb_strpos( $seg, $t['title'] ) ) {
+                                                                $already = true;
+                                                        }
+                                                } elseif ( false !== mb_strpos( $seg, $t['title'] ) ) {
+                                                        $free_target = $si;
                                                 }
-                                                $pos = mb_strpos( $seg, $t['title'] );
-                                                $segs[ $si ] = mb_substr( $seg, 0, $pos )
-                                                        . '<a href="' . esc_url( $t['url'] ) . '">' . esc_html( $t['title'] ) . '</a>'
-                                                        . mb_substr( $seg, $pos + mb_strlen( $t['title'] ) );
-                                                $inner = implode( '', $segs );
-                                                $used++;
-                                                break;
                                         }
+                                        if ( $already || false === $free_target ) {
+                                                continue;
+                                        }
+                                        $segs[ $free_target ] = mb_substr( $segs[ $free_target ], 0, mb_strpos( $segs[ $free_target ], $t['title'] ) )
+                                                . '<a href="' . esc_url( $t['url'] ) . '">' . esc_html( $t['title'] ) . '</a>'
+                                                . mb_substr( $segs[ $free_target ], mb_strpos( $segs[ $free_target ], $t['title'] ) + mb_strlen( $t['title'] ) );
+                                        $inner = implode( '', $segs );
+                                        $used++;
                                 }
                                 return '<p' . substr( $m[0], 2, strpos( $m[0], '>' ) - 1 ) . $inner . '</p>';
                         },
