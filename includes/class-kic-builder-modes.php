@@ -564,6 +564,21 @@ EOT;
                         delete_post_meta( $post_id, '_elementor_css' );
                         delete_post_meta( $post_id, '_elementor_inline_css' );
 
+                        /* Keep post_content in sync — Elementor renders from
+                         * _elementor_data, but the WP editor, search, excerpts
+                         * and any non-Elementor fallback need real content. An
+                         * empty post_content made publishes look like nothing
+                         * happened to authors checking the editor. */
+                        $synced = get_post( $post_id );
+                        if ( $synced && '' === trim( (string) $synced->post_content ) ) {
+                                wp_update_post(
+                                        array(
+                                                'ID'           => $post_id,
+                                                'post_content' => wp_slash( $html ),
+                                        )
+                                );
+                        }
+
                         return array( 'mode' => 'elementor', 'applied' => true );
                 }
 
