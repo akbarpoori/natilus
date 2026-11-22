@@ -67,6 +67,34 @@ final class KIC_Builder_Modes {
                 // Floating compose panel inside the Elementor editor screen.
                 add_action( 'elementor/editor/after_enqueue_scripts', array( $this, 'enqueue_elementor_panel' ) );
                 add_action( 'admin_footer', array( $this, 'print_elementor_panel' ) );
+
+                /* v2.5.2 — one-time repair: releases ≤2.5.1 wrote
+                 * _elementor_edit_mode='edit', but Elementor only renders a
+                 * document when the meta is 'builder'. Posts published that
+                 * way showed an empty body on the frontend. */
+                add_action( 'admin_init', array( $this, 'migrate_elementor_edit_mode' ) );
+        }
+
+        /**
+         * Flip legacy '_elementor_edit_mode' = 'edit' rows to 'builder' once.
+         *
+         * @return void
+         */
+        public function migrate_elementor_edit_mode() {
+                if ( get_option( 'kic_el_mode_v252' ) ) {
+                        return;
+                }
+                global $wpdb;
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time data repair; nothing in WP API reaches this meta directly.
+                $wpdb->query(
+                        $wpdb->prepare(
+                                "UPDATE {$wpdb->postmeta} SET meta_value = %s WHERE meta_key = %s AND meta_value = %s",
+                                'builder',
+                                '_elementor_edit_mode',
+                                'edit'
+                        )
+                );
+                update_option( 'kic_el_mode_v252', '1', false );
         }
 
         /* --------------------------------------------------------------------- */
@@ -118,7 +146,7 @@ final class KIC_Builder_Modes {
         public static function detect_for_post( $post_id ) {
                 $post_id = absint( $post_id );
 
-                if ( $post_id > 0 && 'edit' === (string) get_post_meta( $post_id, '_elementor_edit_mode', true ) ) {
+                if ( $post_id > 0 && '' !== (string) get_post_meta( $post_id, '_elementor_edit_mode', true ) ) {
                         return 'elementor';
                 }
 
@@ -138,7 +166,7 @@ final class KIC_Builder_Modes {
         public static function available_modes( $post_id = 0 ) {
                 $elementor = (
                         class_exists( '\Elementor\Plugin' )
-                        || ( $post_id > 0 && 'edit' === (string) get_post_meta( $post_id, '_elementor_edit_mode', true ) )
+                        || ( $post_id > 0 && '' !== (string) get_post_meta( $post_id, '_elementor_edit_mode', true ) )
                         || did_action( 'elementor/loaded' )
                 );
 
@@ -558,7 +586,7 @@ EOT;
                                 }
                         }
 
-                        update_post_meta( $post_id, '_elementor_edit_mode', 'edit' );
+                        update_post_meta( $post_id, '_elementor_edit_mode', 'builder' );
                         update_post_meta( $post_id, '_elementor_data', wp_slash( wp_json_encode( $sections ) ) );
                         update_post_meta( $post_id, '_elementor_template_type', 'wp-page' );
                         delete_post_meta( $post_id, '_elementor_css' );

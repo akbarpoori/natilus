@@ -200,7 +200,7 @@ final class KIC_Builder_Integration {
          * @return void
          */
         private function sync_elementor( $post_id, $html ) {
-                if ( get_post_meta( $post_id, '_elementor_edit_mode', true ) !== 'edit' ) {
+                if ( '' === (string) get_post_meta( $post_id, '_elementor_edit_mode', true ) ) {
                         return; // Not an Elementor document.
                 }
 

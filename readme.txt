@@ -4,7 +4,7 @@ Tags: publishing, content, elementor, seo, gutenberg, classic-editor, bulk, work
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2.5.1
+Stable tag: 2.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,11 @@ Settings → "Transfer settings" → download a portable JSON bundle (API keys e
 Use the WP-CLI commands: `wp kic queue --action=run` and `wp kic tokens --days=7`.
 
 == Changelog ==
+
+= 2.5.2 =
+* CRITICAL fix: _elementor_edit_mode now writes "builder" (what Elementor checks) — posts published in Elementor mode rendered EMPTY body before
+* Fix: Elementor-post detection accepts any non-empty edit_mode
+* One-time migration repairs previously published posts
 
 = 2.5.1 =
 * Fix: cats/tags accept array or CSV (no more array-to-string warning)

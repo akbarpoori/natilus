@@ -112,7 +112,7 @@ final class KIC_Metabox {
                 echo '<div id="kic-compose-root" class="kic-root" dir="rtl"></div>';
                 echo '<noscript><div class="kic-nojs">برای استفاده از Natilus باید جاوااسکریپت مرورگر فعال باشد.</div></noscript>';
 
-                if ( $post_id > 0 && 'edit' === (string) get_post_meta( $post_id, '_elementor_edit_mode', true ) ) {
+                if ( $post_id > 0 && '' !== (string) get_post_meta( $post_id, '_elementor_edit_mode', true ) ) {
                         echo '<div class="kic-elementor-note">این نوشته با Elementor ساخته شده است — با انتشار از ویجت Natilus، محتوا در ساختار المنتور ثبت می‌شود.</div>';
                 }
         }
@@ -196,7 +196,7 @@ final class KIC_Metabox {
                         }
                 }
 
-                $is_elementor = ( $post_id > 0 ) && ( 'edit' === (string) get_post_meta( $post_id, '_elementor_edit_mode', true ) );
+                $is_elementor = ( $post_id > 0 ) && ( '' !== (string) get_post_meta( $post_id, '_elementor_edit_mode', true ) );
 
                 /* Builder modes available on this screen. */
                 $builder_modes = array();
