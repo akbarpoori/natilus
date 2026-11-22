@@ -185,6 +185,33 @@ final class KIC_SEO_Integrator {
                 if ( '' !== $description ) {
                         echo '<meta property="og:description" content="' . esc_attr( $description ) . '" />' . "\n";
                 }
+
+                /* Complete the social card: type/url, image (explicit og_image,
+                 * else featured image), and the Twitter summary card. */
+                $og_image = trim( (string) get_post_meta( $post_id, '_kic_og_image', true ) );
+                if ( '' === $og_image ) {
+                        $og_image = (string) get_the_post_thumbnail_url( $post_id, 'large' );
+                }
+                $permalink = get_permalink( $post_id );
+
+                echo '<meta property="og:type" content="article" />' . "\n";
+                if ( $permalink ) {
+                        echo '<meta property="og:url" content="' . esc_attr( $permalink ) . '" />' . "\n";
+                }
+                if ( '' !== $og_image ) {
+                        echo '<meta property="og:image" content="' . esc_attr( $og_image ) . '" />' . "\n";
+                }
+
+                echo '<meta name="twitter:card" content="' . ( '' !== $og_image ? 'summary_large_image' : 'summary' ) . '" />' . "\n";
+                if ( '' !== $title ) {
+                        echo '<meta name="twitter:title" content="' . esc_attr( $title ) . '" />' . "\n";
+                }
+                if ( '' !== $description ) {
+                        echo '<meta name="twitter:description" content="' . esc_attr( $description ) . '" />' . "\n";
+                }
+                if ( '' !== $og_image ) {
+                        echo '<meta name="twitter:image" content="' . esc_attr( $og_image ) . '" />' . "\n";
+                }
         }
 
         /**

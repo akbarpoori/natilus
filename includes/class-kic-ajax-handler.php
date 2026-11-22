@@ -648,10 +648,17 @@ final class KIC_Ajax_Handler {
 
                 // Categories/tags only apply to a freshly created post; the
                 // current post keeps whatever its own WordPress sidebar says.
-                $cats_raw = isset( $params['cats'] ) ? (string) $params['cats'] : '';
-                $tags_raw = isset( $params['tags'] ) ? sanitize_text_field( (string) $params['tags'] ) : '';
+                $cats_raw = isset( $params['cats'] ) ? $params['cats'] : '';
+                $tags_raw = isset( $params['tags'] ) ? $params['tags'] : '';
+                if ( is_array( $cats_raw ) ) {
+                        $cats_raw = implode( ',', $cats_raw );
+                }
+                if ( is_array( $tags_raw ) ) {
+                        $tags_raw = implode( ',', $tags_raw );
+                }
+                $tags_raw = sanitize_text_field( (string) $tags_raw );
                 $cats     = array();
-                foreach ( explode( ',', $cats_raw ) as $cat_id ) {
+                foreach ( explode( ',', (string) $cats_raw ) as $cat_id ) {
                         $cat_id = absint( trim( $cat_id ) );
                         if ( $cat_id ) {
                                 $cats[] = $cat_id;
