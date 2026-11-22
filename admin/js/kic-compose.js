@@ -659,6 +659,55 @@
                 });
                 var rawField = field('kic-f-raw', 'محتوای کامل نوشته', els.raw);
 
+                /* v2.6 — live counter under the content box: chars/words plus
+                 * a size warning before the POST trips the server limit. */
+                els.rawCounter = h('div', { class: 'kic-raw-counter' }, '');
+                var updateRawCounter = function () {
+                        var len = (els.raw.value || '').length;
+                        var words = (els.raw.value || '').trim().split(/\s+/).filter(Boolean).length;
+                        var msg = 'نویسه: ' + len.toLocaleString('fa-IR') + ' · کلمه: ' + words.toLocaleString('fa-IR');
+                        var warn = len > 40000;
+                        if (warn) {
+                                msg += ' · ⚠ نزدیک به سقف ارسال سرور — رسانه‌ها را کمتر کنید یا متن را بخش‌بخش بفرستید';
+                        }
+                        els.rawCounter.textContent = msg;
+                        els.rawCounter.classList.toggle('kic-warn', warn);
+                };
+                els.raw.addEventListener('input', updateRawCounter);
+                updateRawCounter();
+                rawField.appendChild(els.rawCounter);
+
+                /* Undo: آخرین متن خام قبل از چینش/بازنویسی AI نگه داشته می‌شود. */
+                els.undoRaw = h('button', {
+                        type: 'button',
+                        class: 'kic-link kic-undo-raw',
+                        title: 'متن را به آخرین حالت قبل از چینش برگردان'
+                }, '↺ بازگردانی متن');
+                els.undoRaw.style.display = 'none';
+                els.undoRaw.addEventListener('click', function () {
+                        if (typeof state.undoRaw === 'string') {
+                                els.raw.value = state.undoRaw;
+                                state.undoRaw = null;
+                                els.undoRaw.style.display = 'none';
+                                updateRawCounter();
+                        }
+                });
+                rawField.appendChild(els.undoRaw);
+
+                /* Keyboard shortcut: Ctrl+Enter on the raw box = انتشار، and
+                 * Ctrl+Shift+Enter = چینش (when AI is configured). */
+                els.raw.addEventListener('keydown', function (e) {
+                        if (!(e.ctrlKey || e.metaKey) || e.key !== 'Enter') {
+                                return;
+                        }
+                        e.preventDefault();
+                        if (e.shiftKey && els.btnGenerate && !els.btnGenerate.disabled) {
+                                els.btnGenerate.click();
+                        } else if (els.btnPublish && !els.btnPublish.disabled) {
+                                els.btnPublish.click();
+                        }
+                });
+
                 /* v2.4 — optional prompt-based generation: fills the SAME
                  * raw box + metadata fields; the user reviews then publishes
                  * through the normal button. Nothing is auto-published. */
@@ -1144,7 +1193,7 @@
                 els.genPreviewKicker.textContent = kickerBits.join(' — ');
                 els.genPreviewKicker.classList.toggle('kic-hidden', kickerBits.length === 0);
 
-                els.genPreviewBody.innerHTML = String(article.html || '');
+                els.genPreviewBody.innerHTML = sanitizePreviewHtml(article.html);
                 els.genPreviewBody.scrollTop = 0;
 
                 var metaBits = [];
@@ -1231,17 +1280,26 @@
                                 throw new Error(T('پاسخ تولید قابل استفاده نبود.'));
                         }
 
-                        /* Fill the raw box — the publisher reads exactly this. */
+                        /* Fill the raw box — the publisher reads exactly this.
+                         * Snapshot the pre-fill text for the undo button. */
+                        state.undoRaw = els.raw.value;
+                        if (els.undoRaw) {
+                                els.undoRaw.style.display = '';
+                        }
                         els.raw.value = String(article.html);
+                        els.raw.dataset.kicFilled = '1';
 
                         /* Fill metadata fields; never clobber text the author
                          * already typed into a field. */
-                        fillIfEmpty(els.title, article.title);
-                        fillIfEmpty(els.kicker, article.kicker);
-                        fillIfEmpty(els.subtitle, article.subtitle);
-                        fillIfEmpty(els.seoQuickTitle, article.seo_title);
-                        fillIfEmpty(els.seoQuickDesc, article.seo_description);
-                        fillIfEmpty(els.seoFocusKeyword, article.focus_keyword);
+                        /* Organize overwrites its own previous output but
+                         * never wipes a field the user typed manually. Fields
+                         * we filled last run get refreshed; hand-typed stays. */
+                        fillOrRefresh(els.title, article.title);
+                        fillOrRefresh(els.kicker, article.kicker);
+                        fillOrRefresh(els.subtitle, article.subtitle);
+                        fillOrRefresh(els.seoQuickTitle, article.seo_title);
+                        fillOrRefresh(els.seoQuickDesc, article.seo_description);
+                        fillOrRefresh(els.seoFocusKeyword, article.focus_keyword);
 
                         /* Slug: English translation when the checkbox is on,
                          * otherwise WordPress derives it from the title. */
@@ -1315,6 +1373,33 @@
          * @param {string}  text Suggested value.
          * @return {void}
          */
+        /**
+         * Client-side HTML sanitizer for preview surfaces — mirrors what
+         * kic_kses_article does server-side. Never trust model output: strip
+         * scripts, on* handlers and javascript: URLs before innerHTML.
+         *
+         * @param {string} html Untrusted markup.
+         * @return {string}
+         */
+        function sanitizePreviewHtml(html) {
+                var tmp = document.createElement('div');
+                tmp.innerHTML = String(html || '');
+                Array.prototype.forEach.call(
+                        tmp.querySelectorAll('script, noscript, object, embed, form, input, button, link, meta'),
+                        function (n) { n.parentNode && n.parentNode.removeChild(n); }
+                );
+                Array.prototype.forEach.call(tmp.querySelectorAll('*'), function (n) {
+                        Array.prototype.slice.call(n.attributes || []).forEach(function (attr) {
+                                var name = attr.name.toLowerCase();
+                                var val = String(attr.value || '').replace(/\s/g, '');
+                                if (name.indexOf('on') === 0 || /javascript:/i.test(val) || (/(?:src|href|srcset)$/i.test(name) && /data:/i.test(val))) {
+                                        n.removeAttribute(attr.name);
+                                }
+                        });
+                });
+                return tmp.innerHTML;
+        }
+
         function fillIfEmpty(el, text) {
                 if (!el || !text) {
                         return;
@@ -1322,6 +1407,30 @@
                 var value = String(text).trim();
                 if (value !== '' && String(el.value || '').trim() === '') {
                         el.value = value;
+                }
+        }
+
+        /**
+         * Fill a field with the new organize output when it is empty OR still
+         * holds the value a previous organize wrote (tracked via dataset).
+         * Hand-typed content is never overwritten.
+         *
+         * @param {HTMLElement} el   Field.
+         * @param {string}      text New value.
+         * @return {void}
+         */
+        function fillOrRefresh(el, text) {
+                if (!el || !text) {
+                        return;
+                }
+                var value = String(text).trim();
+                var current = String(el.value || '').trim();
+                if (value === '') {
+                        return;
+                }
+                if (current === '' || el.dataset.kicFilled === '1') {
+                        el.value = value;
+                        el.dataset.kicFilled = '1';
                 }
         }
 
@@ -1500,7 +1609,7 @@
                 if (!els.aiPreview || !els.aiPreviewBody) {
                         return;
                 }
-                els.aiPreviewBody.innerHTML = state.aiEdit.html || '';
+                els.aiPreviewBody.innerHTML = sanitizePreviewHtml(state.aiEdit.html);
                 switchAiTab('after');
 
                 var bits = [];
@@ -1533,9 +1642,9 @@
                 var isBefore = 'before' === which;
                 els.aiPreview.setAttribute('data-ai-tab', isBefore ? 'before' : 'after');
                 if (els.aiPreviewBody) {
-                        els.aiPreviewBody.innerHTML = isBefore
+                        els.aiPreviewBody.innerHTML = sanitizePreviewHtml(isBefore
                                 ? (state.aiEdit.original || '')
-                                : (state.aiEdit.html || '');
+                                : (state.aiEdit.html || ''));
                 }
                 [els.aiTabAfter, els.aiTabBefore].forEach(function (btn) {
                         if (!btn) {
@@ -2345,7 +2454,7 @@
                 }
                 els.sitePreview.textContent = '';
                 var feat = mediaLines().filter(function (u) { return /^https?:\/\//i.test(u); })[0];
-                var slug = (els.slugField && els.slugField.value) || '';
+                var slug = (els.slug && els.slug.value) || '';
                 var children = [];
 
                 if (feat && els.featured && els.featured.checked) {
@@ -2366,7 +2475,7 @@
                         }));
                 }
                 var body = h('div', { class: 'kic-preview-article' });
-                body.innerHTML = content; // kses'd server-side on publish; preview mirrors editor content
+                body.innerHTML = sanitizePreviewHtml(content); // kses'd server-side on publish; preview mirrors editor content
                 children.push(body);
 
                 var card = h('div', { class: 'kic-preview' }, children);
@@ -2768,6 +2877,13 @@
                         return;
                 }
                 els.root = root;
+                /* Real keystrokes clear the auto-filled flag, so the next
+                 * organize run refreshes only untouched fields. */
+                root.addEventListener('input', function (e) {
+                        if (e.target && e.target.dataset) {
+                                delete e.target.dataset.kicFilled;
+                        }
+                });
                 buildWidget();
         }
 

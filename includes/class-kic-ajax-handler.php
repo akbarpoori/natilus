@@ -428,7 +428,7 @@ final class KIC_Ajax_Handler {
                 if ( $mode_routing ) {
                         // draft_new still needs a target post created by the injector.
                         if ( 'draft_new' === $opts['target'] ) {
-                                $draft_result = KIC_Content_Injector::instance()->inject( $post_id, wp_kses_post( $html ), $opts['target'], 'classic' );
+                                $draft_result = KIC_Content_Injector::instance()->inject( $post_id, kic_kses_article( $html ), $opts['target'], 'classic' );
                                 if ( is_wp_error( $draft_result ) ) {
                                         return $draft_result;
                                 }
@@ -437,7 +437,7 @@ final class KIC_Ajax_Handler {
                                 $result = array( 'post_id' => $post_id );
                         }
                 } else {
-                        $result = KIC_Content_Injector::instance()->inject( $post_id, wp_kses_post( $html ), $opts['target'], $opts['editor'] );
+                        $result = KIC_Content_Injector::instance()->inject( $post_id, kic_kses_article( $html ), $opts['target'], $opts['editor'] );
                         if ( is_wp_error( $result ) ) {
                                 return $result;
                         }

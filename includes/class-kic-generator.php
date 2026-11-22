@@ -44,7 +44,7 @@ final class KIC_Generator {
         /**
          * Minimum plausible generated body before we call it unusable.
          */
-        const MIN_HTML_CHARS = 80;
+        const MIN_HTML_CHARS = 20;
 
         /**
          * Singleton instance.
@@ -241,7 +241,7 @@ final class KIC_Generator {
                  *    instruction (the «چینش» mode from the reference UX). */
                 $source = isset( $params['content'] ) ? (string) $params['content'] : '';
                 $source = wp_check_invalid_utf8( $source, true );
-                $source = trim( wp_kses_post( $source ) );
+                $source = trim( kic_kses_article( $source ) );
                 $source_len = function_exists( 'mb_strlen' ) ? mb_strlen( wp_strip_all_tags( $source ), 'UTF-8' ) : strlen( wp_strip_all_tags( $source ) );
                 $has_source = $source_len >= 20;
 
@@ -254,6 +254,32 @@ final class KIC_Generator {
                 }
                 if ( '' === $prompt ) {
                         $prompt = kic_t( 'این متن را در قالب یک مقالهٔ کامل وردپرسی بچیند — عناوین، پاراگراف‌ها و ساختار را مرتب کن بدون اینکه محتوای اصلی تغییر کند.' );
+                }
+
+                /* v2.6 — offline organize: pasted text already carries its own
+                 * structure markers (H1:/H2:/H3:/• bullets). When no provider
+                 * is configured the marker map alone is enough to build the
+                 * article — no model call needed and nothing is invented.
+                 * Reported with local=1 so the UI can label it «چینش بدون AI». */
+                if ( $has_source && $this->has_structure_markers( $source ) ) {
+                        $avail = self::availability();
+                        if ( empty( $avail['configured'] ) ) {
+                                $article = $this->organize_locally( $source );
+                                if ( '' !== $article['html'] ) {
+                                        $this->finish();
+                                        wp_send_json_success(
+                                                array_merge(
+                                                        $article,
+                                                        array(
+                                                                'model'     => 'local-parser',
+                                                                'local'     => true,
+                                                                'usage'     => array(),
+                                                                'read_only' => true,
+                                                        )
+                                                )
+                                        );
+                                }
+                        }
                 }
 
                 $builder_mode = class_exists( 'KIC_Builder_Modes' ) && method_exists( 'KIC_Builder_Modes', 'sanitize_mode' )
@@ -478,6 +504,17 @@ final class KIC_Generator {
                 $content = trim( $content );
 
                 $decoded = json_decode( $content, true );
+                if ( ! is_array( $decoded ) ) {
+                        /* v2.6 — models often wrap the JSON in prose
+                         * ("حتماً! این مقالهٔ شما:```json ...```"). Bare decode
+                         * fails and the whole blob would get published as raw
+                         * text. Recover the outermost balanced {...} block. */
+                        $start = strpos( $content, '{' );
+                        $end   = strrpos( $content, '}' );
+                        if ( false !== $start && false !== $end && $end > $start ) {
+                                $decoded = json_decode( substr( $content, $start, $end - $start + 1 ), true );
+                        }
+                }
                 if ( is_array( $decoded ) ) {
                         $html = isset( $decoded['html'] ) ? (string) $decoded['html'] : '';
                         $html = $this->clean_html( $html );
@@ -506,6 +543,96 @@ final class KIC_Generator {
         }
 
         /**
+         * Does the pasted text carry explicit structure markers
+         * (H1:/H2:/H3: heading lines or • bullets)?
+         *
+         * @param string $source Raw pasted text.
+         * @return bool
+         */
+        private function has_structure_markers( $source ) {
+                return 1 === preg_match( '/^\s*(?:H[123]|عنوان)\s*[:：]/mu', (string) $source )
+                        || 1 === preg_match( '/^\s*[•\-\*]\s+\S/mu', (string) $source );
+        }
+
+        /**
+         * Deterministic organize for marker-formatted source text — no model.
+         * H1: → post title, H2:/H3: → headings, •/-/* lines → <ul><li>,
+         * other lines → <p>. Nothing is rewritten or invented.
+         *
+         * @param string $source Pasted text.
+         * @return array Article-shaped payload (title/html/seo fields/slug_en='').
+         */
+        private function organize_locally( $source ) {
+                $title   = '';
+                $html    = '';
+                $in_list = false;
+                $excerpt = '';
+
+                foreach ( preg_split( '/\r\n|\r|\n/', (string) $source ) as $raw_line ) {
+                        $line = trim( (string) $raw_line );
+                        if ( '' === $line ) {
+                                if ( $in_list ) {
+                                        $html   .= "</ul>\n";
+                                        $in_list = false;
+                                }
+                                continue;
+                        }
+
+                        $heading = null;
+                        if ( preg_match( '/^(?:H1|عنوان)\s*[:：]\s*(.+)$/u', $line, $m ) ) {
+                                $heading = '' === $title ? 'title' : 'h2';
+                        } elseif ( preg_match( '/^H2\s*[:：]\s*(.+)$/u', $line, $m ) ) {
+                                $heading = 'h2';
+                        } elseif ( preg_match( '/^H3\s*[:：]\s*(.+)$/u', $line, $m ) ) {
+                                $heading = 'h3';
+                        }
+                        if ( null !== $heading ) {
+                                if ( $in_list ) {
+                                        $html   .= "</ul>\n";
+                                        $in_list = false;
+                                }
+                                if ( 'title' === $heading ) {
+                                        $title = trim( $m[1] );
+                                } else {
+                                        $html .= '<' . $heading . '>' . esc_html( trim( $m[1] ) ) . '</' . $heading . ">\n";
+                                }
+                                continue;
+                        }
+                        if ( preg_match( '/^[•\-\*]\s+(.+)$/u', $line, $m ) ) {
+                                if ( ! $in_list ) {
+                                        $html   .= "<ul>\n";
+                                        $in_list = true;
+                                }
+                                $html .= '<li>' . esc_html( trim( $m[1] ) ) . "</li>\n";
+                                continue;
+                        }
+
+                        if ( $in_list ) {
+                                $html   .= "</ul>\n";
+                                $in_list = false;
+                        }
+                        if ( '' === $excerpt ) {
+                                $excerpt = $line;
+                        }
+                        $html .= '<p>' . esc_html( $line ) . "</p>\n";
+                }
+                if ( $in_list ) {
+                        $html .= "</ul>\n";
+                }
+
+                return array(
+                        'title'           => $this->short_text( $title, 200 ),
+                        'kicker'          => '',
+                        'subtitle'        => '',
+                        'html'            => $html,
+                        'seo_title'       => $this->short_text( $title, 120 ),
+                        'seo_description' => $this->short_text( $excerpt, 200 ),
+                        'focus_keyword'   => '',
+                        'slug_en'         => '',
+                );
+        }
+
+        /**
          * Whitelist-sanitize generated HTML (same post-HTML rules as the AI
          * editor) and enforce the size cap.
          *
@@ -518,7 +645,7 @@ final class KIC_Generator {
                         return '';
                 }
                 $html = wp_check_invalid_utf8( $html, true );
-                $html = trim( wp_kses_post( $html ) );
+                $html = trim( kic_kses_article( $html ) );
                 if ( function_exists( 'mb_strlen' ) ) {
                         $len = mb_strlen( $html, 'UTF-8' );
                         if ( $len > self::MAX_HTML_CHARS ) {

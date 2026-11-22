@@ -78,7 +78,7 @@ final class KIC_Content_Injector {
                         return new WP_Error( 'kic_post_missing', 'نوشته هدف یافت نشد.' );
                 }
 
-                $html = wp_kses_post( (string) $html );
+                $html = kic_kses_article( (string) $html );
 
                 $target = is_string( $target ) ? $target : '';
                 if ( ! in_array( $target, array( 'append', 'replace', 'draft_new' ), true ) ) {

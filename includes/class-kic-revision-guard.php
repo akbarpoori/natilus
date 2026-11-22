@@ -71,7 +71,9 @@ final class KIC_Revision_Guard {
 			$revision_id = function_exists( 'wp_save_post_revision' ) ? wp_save_post_revision( $post_id ) : null;
 
 			if ( is_numeric( $revision_id ) && (int) $revision_id > 0 ) {
-				return 'rev:' . (int) $revision_id;
+				$key = 'rev:' . (int) $revision_id;
+				self::store_meta_snapshot( $post_id, $key );
+				return $key;
 			}
 		}
 
@@ -88,6 +90,7 @@ final class KIC_Revision_Guard {
 			'content' => (string) get_post_field( 'post_content', $post_id ),
 			'time'    => time(),
 		) );
+		self::store_meta_snapshot( $post_id, $key );
 
 		$keep = absint( kic_get_setting( 'keep_backups', 3 ) );
 		if ( $keep < 1 ) {
@@ -102,6 +105,86 @@ final class KIC_Revision_Guard {
 		update_post_meta( $post_id, '_kic_backups', $backups );
 
 		return $key;
+	}
+
+	/**
+	 * Meta keys whose full state is captured by every snapshot so a rollback
+	 * restores the visible page — not just post_content (Elementor renders
+	 * _elementor_data, so restoring only the body never undid a publish).
+	 *
+	 * @var string[]
+	 */
+	const META_SNAPSHOT_KEYS = array(
+		'_elementor_data',
+		'_elementor_edit_mode',
+		'_elementor_template_type',
+		'_elementor_css',
+		'_elementor_inline_css',
+		'_thumbnail_id',
+		'_kic_seo',
+		'_kic_og_image',
+		'_kic_jsonld',
+		'kic_kicker',
+		'kic_subtitle',
+		'kicker',
+		'subtitle',
+	);
+
+	/**
+	 * Persist a full side snapshot (meta + taxonomy) for a backup key.
+	 *
+	 * @param int    $post_id Post id.
+	 * @param string $key     Backup key ('rev:<id>' or 'bak:<uniqid>').
+	 * @return void
+	 */
+	private static function store_meta_snapshot( $post_id, $key ) {
+		$meta = array();
+		foreach ( self::META_SNAPSHOT_KEYS as $mk ) {
+			$meta[ $mk ] = get_post_meta( $post_id, $mk, true );
+		}
+		$terms = array();
+		foreach ( get_object_taxonomies( get_post_type( $post_id ), 'names' ) as $tax ) {
+			$t = wp_get_object_terms( $post_id, $tax, array( 'fields' => 'ids' ) );
+			if ( is_array( $t ) && ! is_wp_error( $t ) ) {
+				$terms[ $tax ] = array_map( 'intval', $t );
+			}
+		}
+		$all = get_post_meta( $post_id, '_kic_backup_meta', true );
+		if ( ! is_array( $all ) ) {
+			$all = array();
+		}
+		$all[ $key ] = array( 'meta' => $meta, 'terms' => $terms );
+		update_post_meta( $post_id, '_kic_backup_meta', $all );
+	}
+
+	/**
+	 * Apply a stored meta snapshot (idempotent, tolerant of missing keys).
+	 *
+	 * @param int    $post_id Post id.
+	 * @param string $key     Backup key.
+	 * @return void
+	 */
+	private static function restore_meta_snapshot( $post_id, $key ) {
+		$all = get_post_meta( $post_id, '_kic_backup_meta', true );
+		if ( ! is_array( $all ) || ! isset( $all[ $key ] ) || ! is_array( $all[ $key ] ) ) {
+			return;
+		}
+		$snap = $all[ $key ];
+		foreach ( self::META_SNAPSHOT_KEYS as $mk ) {
+			if ( array_key_exists( $mk, $snap['meta'] ) ) {
+				$v = $snap['meta'][ $mk ];
+				if ( '' === $v || null === $v ) {
+					delete_post_meta( $post_id, $mk );
+				} else {
+					update_post_meta( $post_id, $mk, $v );
+				}
+			}
+		}
+		if ( isset( $snap['terms'] ) && is_array( $snap['terms'] ) ) {
+			foreach ( $snap['terms'] as $tax => $ids ) {
+				wp_set_object_terms( $post_id, array_map( 'intval', (array) $ids ), (string) $tax, false );
+			}
+		}
 	}
 
 	/**
@@ -145,7 +228,11 @@ final class KIC_Revision_Guard {
 				'post_content' => $revision->post_content,
 			), true );
 
-			return ( ! is_wp_error( $result ) && ! empty( $result ) );
+			if ( ! is_wp_error( $result ) && ! empty( $result ) ) {
+				self::restore_meta_snapshot( $post_id, $key );
+				return true;
+			}
+			return false;
 		}
 
 		if ( 0 === strpos( $key, 'bak:' ) ) {
@@ -179,7 +266,11 @@ final class KIC_Revision_Guard {
 				'post_content' => $content,
 			), true );
 
-			return ( ! is_wp_error( $result ) && ! empty( $result ) );
+			if ( ! is_wp_error( $result ) && ! empty( $result ) ) {
+				self::restore_meta_snapshot( $post_id, $key );
+				return true;
+			}
+			return false;
 		}
 
 		return false;

@@ -1835,3 +1835,8 @@
 .kic-preview-article img{max-width:100%;height:auto;border-radius:6px}
 .kic-preview-article blockquote{border-right:3px solid #008a76;margin:14px 0;padding:4px 14px;color:#50575e;background:#f6f7f7;border-radius:4px}
 .kic-preview-article a{color:#008a76}
+
+.kic-raw-counter{margin-top:4px;font-size:11px;color:#8c8f94;text-align:left}
+.kic-raw-counter.kic-warn{color:#b32d2e;font-weight:600}
+.kic-undo-raw{margin-top:4px;font-size:12px;color:#008a76;background:none;border:0;cursor:pointer;padding:0}
+.kic-undo-raw:hover{text-decoration:underline}

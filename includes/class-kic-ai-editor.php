@@ -343,7 +343,7 @@ final class KIC_AI_Editor {
                 /* Sanitized again server-side — the payload traveled through the
                  * browser between preview and apply. */
                 $html = wp_check_invalid_utf8( $html, true );
-                $html = trim( wp_kses_post( $html ) );
+                $html = trim( kic_kses_article( $html ) );
                 if ( '' === $html ) {
                         wp_send_json_error( kic_t( 'محتوای ویرایش‌شده پس از پالایش خالی شد — چیزی اعمال نشد.' ) );
                 }
@@ -459,7 +459,7 @@ final class KIC_AI_Editor {
                 }
 
                 $content = wp_check_invalid_utf8( $content, true );
-                $content = wp_kses_post( $content );
+                $content = kic_kses_article( $content );
                 return trim( $content );
         }
 }

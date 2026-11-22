@@ -4,7 +4,7 @@ Tags: publishing, content, elementor, seo, gutenberg, classic-editor, bulk, work
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2.5.2
+Stable tag: 2.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,17 @@ Settings → "Transfer settings" → download a portable JSON bundle (API keys e
 Use the WP-CLI commands: `wp kic queue --action=run` and `wp kic tokens --days=7`.
 
 == Changelog ==
+
+= 2.6.0 =
+* Fix: rollback now restores full publish state (Elementor data, featured image, SEO, kicker/subtitle, terms) — not just post_content
+* Fix: ready-content publishing keeps legitimate embeds — iframe (http/https only), figure, video/audio, tables, details/summary, data-src images (was silently stripped by wp_kses_post)
+* Fix: organize preview HTML sanitized client-side (script/on*/javascript: stripped before innerHTML)
+* Fix: AI JSON parse recovers the outermost {...} block when the model wraps output in prose
+* Fix: media sideload batch gets a real time budget + HEAD pre-check (MIME/size) — no more mid-batch death
+* Fix: legacy Elementor posts get post_content rebuilt from _elementor_data (one-time migration)
+* Feature: offline organize — H1:/H2:/H3:/• markers structure pasted text with no AI provider needed
+* UX: live char/word counter under content box + post-size warning, Ctrl+Enter publish / Ctrl+Shift+Enter organize, undo-restore of the raw text after organize, organize re-fill now refreshes its own previous values without clobbering hand-typed fields
+* Fix: kubit-media filename remnant renamed natilus-media; MIN_HTML_CHARS 80→20; slug shown in site preview
 
 = 2.5.2 =
 * CRITICAL fix: _elementor_edit_mode now writes "builder" (what Elementor checks) — posts published in Elementor mode rendered EMPTY body before

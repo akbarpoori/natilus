@@ -155,10 +155,24 @@ final class KIC_Media_Handler {
                         return $items;
                 }
 
-                /* Scoped quality filter: applies ONLY to this batch. */
+                /* Scoped quality filter: applies ONLY to this batch.
+                 * v2.6 — hard time budget: 20 URLs × up-to-120s downloads can
+                 * outlive max_execution_time and die mid-batch, leaving the
+                 * post half-imported. Stop starting new downloads once the
+                 * shared deadline is reached and report partials. */
+                $deadline = microtime( true ) + $this->batch_budget_seconds();
+
                 $this->arm_quality_filter();
                 try {
                         foreach ( $clean as $url ) {
+                                if ( microtime( true ) >= $deadline ) {
+                                        $this->last_failures += count( $clean ) - count( $items ) - $this->last_failures;
+                                        break;
+                                }
+                                if ( ! $this->looks_remote_image( $url ) ) {
+                                        $this->last_failures++;
+                                        continue;
+                                }
                                 $attachment_id = $this->sideload_single( $url, $post_id );
                                 if ( is_wp_error( $attachment_id ) ) {
                                         $this->last_failures++;
@@ -192,6 +206,46 @@ final class KIC_Media_Handler {
         }
 
         /**
+         * Per-batch download budget in seconds — the lower of 60s and
+         * 80% of max_execution_time so the loop always finishes cleanly.
+         *
+         * @return int
+         */
+        private function batch_budget_seconds() {
+                $max = (int) ini_get( 'max_execution_time' );
+                if ( $max <= 0 ) {
+                        return 60; // CLI / unlimited: keep a sane bound anyway.
+                }
+                return max( 10, min( 60, (int) floor( $max * 0.8 ) ) );
+        }
+
+        /**
+         * Cheap HEAD pre-check: confirm the URL really is an image before
+         * spending download time on it. Skips when the server does not
+         * answer HEAD (older CDNs) rather than breaking the import.
+         *
+         * @param string $url Validated http/https URL.
+         * @return bool True when the remote looks like an image or HEAD is unavailable.
+         */
+        private function looks_remote_image( $url ) {
+                $path = (string) wp_parse_url( $url, PHP_URL_PATH );
+                $ext  = strtolower( (string) pathinfo( $path, PATHINFO_EXTENSION ) );
+                if ( in_array( $ext, array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'svg' ), true ) ) {
+                        return true;
+                }
+                $head = wp_safe_remote_head( $url, array( 'timeout' => 8, 'redirection' => 3 ) );
+                if ( is_wp_error( $head ) ) {
+                        return true; // HEAD unsupported — let the download decide.
+                }
+                $type = strtolower( (string) wp_remote_retrieve_header( $head, 'content-type' ) );
+                if ( '' !== $type && 0 !== strpos( $type, 'image/' ) ) {
+                        return false;
+                }
+                $length = (int) wp_remote_retrieve_header( $head, 'content-length' );
+                return $length <= 25 * 1024 * 1024; // 25MB sanity cap.
+        }
+
+        /**
          * Sideload one remote file into the media library.
          *
          * @param string $url     Remote URL (validated).
@@ -210,7 +264,7 @@ final class KIC_Media_Handler {
                 $raw_name = basename( (string) wp_parse_url( $url, PHP_URL_PATH ) );
                 $name     = sanitize_file_name( $raw_name );
                 if ( '' === $name || '.' === $name ) {
-                        $name = 'kubit-media-' . uniqid() . '.jpg';
+                        $name = 'natilus-media-' . uniqid() . '.jpg';
                 }
 
                 $file = array(

@@ -73,6 +73,7 @@ final class KIC_Builder_Modes {
                  * document when the meta is 'builder'. Posts published that
                  * way showed an empty body on the frontend. */
                 add_action( 'admin_init', array( $this, 'migrate_elementor_edit_mode' ) );
+                add_action( 'admin_init', array( $this, 'migrate_elementor_post_content' ) );
         }
 
         /**
@@ -95,6 +96,77 @@ final class KIC_Builder_Modes {
                         )
                 );
                 update_option( 'kic_el_mode_v252', '1', false );
+        }
+
+        /**
+         * Second one-time repair (v2.6): posts published through the old
+         * elementor path got a proper _elementor_data doc but an EMPTY
+         * post_content — so the page dies with Elementor disabled and
+         * excerpts/feeds are blank. Rebuild post_content from the stored
+         * widget text where the body is still empty.
+         *
+         * @return void
+         */
+        public function migrate_elementor_post_content() {
+                if ( get_option( 'kic_el_content_v260' ) ) {
+                        return;
+                }
+                global $wpdb;
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- one-time data repair.
+                $rows = $wpdb->get_results(
+                        "SELECT p.ID, pm.meta_value AS edata
+                           FROM {$wpdb->posts} p
+                           JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = '_elementor_data'
+                          WHERE p.post_content = ''
+                            AND p.post_status IN ('publish','draft','pending','private','future')
+                          LIMIT 100"
+                );
+                foreach ( (array) $rows as $row ) {
+                        $data = json_decode( (string) $row->edata, true );
+                        if ( ! is_array( $data ) ) {
+                                continue;
+                        }
+                        $html = self::elementor_text_html( $data );
+                        if ( '' === trim( $html ) ) {
+                                continue;
+                        }
+                        wp_update_post(
+                                array(
+                                        'ID'           => (int) $row->ID,
+                                        'post_content' => wp_slash( $html ),
+                                )
+                        );
+                }
+                update_option( 'kic_el_content_v260', '1', false );
+        }
+
+        /**
+         * Collect readable text from an Elementor document tree
+         * (heading titles + text-editor bodies), recursively.
+         *
+         * @param array $elements Elementor JSON array.
+         * @return string Simple HTML body.
+         */
+        public static function elementor_text_html( $elements ) {
+                $html = '';
+                foreach ( (array) $elements as $el ) {
+                        if ( ! is_array( $el ) ) {
+                                continue;
+                        }
+                        if ( 'widget' === ( isset( $el['elType'] ) ? $el['elType'] : '' ) && isset( $el['settings'] ) && is_array( $el['settings'] ) ) {
+                                $wt = isset( $el['widgetType'] ) ? (string) $el['widgetType'] : '';
+                                if ( 'heading' === $wt && ! empty( $el['settings']['title'] ) ) {
+                                        $tag   = in_array( isset( $el['settings']['header_size'] ) ? $el['settings']['header_size'] : '', array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ), true ) ? $el['settings']['header_size'] : 'h2';
+                                        $html .= '<' . $tag . '>' . esc_html( (string) $el['settings']['title'] ) . '</' . $tag . '>' . "\n";
+                                } elseif ( 'text-editor' === $wt && ! empty( $el['settings']['editor'] ) ) {
+                                        $html .= wp_kses_post( (string) $el['settings']['editor'] ) . "\n";
+                                }
+                        }
+                        if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+                                $html .= self::elementor_text_html( $el['elements'] );
+                        }
+                }
+                return $html;
         }
 
         /* --------------------------------------------------------------------- */

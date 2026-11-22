@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Natilus
  * Description:       Natilus publishes your ready-made content to WordPress exactly as written — kicker/subtitle synced with your theme, media import, galleries, featured image, Elementor/WPBakery/Gutenberg/Classic layouts, SEO meta, drip queue, rollback. AI helpers optional. https://github.com/akbarpoori/natilus | انتشارگر محتوای آماده برای وردپرس
- * Version:           2.5.2
+ * Version:           2.6.0
  * Requires at least: 5.8
  * Requires PHP:      7.0
  * Author:            Meysam Akbarpoori
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         exit;
 }
 
-define( 'KIC_VERSION', '2.5.2' );
+define( 'KIC_VERSION', '2.6.0' );
 define( 'KIC_FILE', __FILE__ );
 define( 'KIC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KIC_URL', plugin_dir_url( __FILE__ ) );
@@ -492,5 +492,123 @@ function kic_deactivate() {
         }
 }
 register_deactivation_hook( __FILE__, 'kic_deactivate' );
+
+/**
+ * Article-content sanitizer (v2.6) — wp_kses_post plus the embed/media
+ * elements a real publisher needs. Ready-made content routinely contains
+ * YouTube/Aparat/Google-Maps iframes, figure wrappers, tables and native
+ * media; plain kses_post silently strips all of them, so publishes looked
+ * "correct" while the embeds were gone.
+ *
+ * iframe src is restricted to http/https URLs; javascript: and data: never
+ * pass. Users with unfiltered_html still get the filtered set — the widget
+ * treats untrusted pasted HTML uniformly.
+ *
+ * @param string $html Raw article HTML.
+ * @return string Sanitized HTML.
+ */
+function kic_kses_article( $html ) {
+        static $allowed = null;
+        if ( null === $allowed ) {
+                $allowed = wp_kses_allowed_html( 'post' );
+
+                $attrs = array(
+                        'class'  => true,
+                        'id'     => true,
+                        'style'  => true,
+                        'title'  => true,
+                        'dir'    => true,
+                        'lang'   => true,
+                        'width'  => true,
+                        'height' => true,
+                );
+                foreach ( array( 'figure', 'figcaption', 'details', 'summary', 'section', 'article', 'aside', 'mark', 'time', 'cite' ) as $t ) {
+                        $allowed[ $t ] = $attrs;
+                }
+                $allowed['time']['datetime'] = true;
+
+                $media_attrs = array_merge(
+                        $attrs,
+                        array(
+                                'src'         => true,
+                                'controls'    => true,
+                                'poster'      => true,
+                                'loop'        => true,
+                                'muted'       => true,
+                                'autoplay'    => true,
+                                'playsinline' => true,
+                                'type'        => true,
+                                'preload'     => true,
+                        )
+                );
+                $allowed['video']   = $media_attrs;
+                $allowed['audio']   = $media_attrs;
+                $allowed['source']  = array( 'src' => true, 'type' => true, 'srcset' => true, 'sizes' => true, 'media' => true );
+                $allowed['picture'] = $attrs;
+                $allowed['track']   = array( 'src' => true, 'kind' => true, 'srclang' => true, 'label' => true, 'default' => true );
+
+                $allowed['iframe'] = array(
+                        'src'             => true,
+                        'width'           => true,
+                        'height'          => true,
+                        'frameborder'     => true,
+                        'allow'           => true,
+                        'allowfullscreen' => true,
+                        'loading'         => true,
+                        'title'           => true,
+                        'referrerpolicy'  => true,
+                        'sandbox'         => true,
+                        'class'           => true,
+                        'style'           => true,
+                );
+
+                $table_attrs = array( 'class' => true, 'id' => true, 'style' => true );
+                foreach ( array( 'thead', 'tfoot', 'tbody', 'colgroup' ) as $t ) {
+                        $allowed[ $t ] = $table_attrs;
+                }
+                $allowed['col']    = array( 'span' => true, 'style' => true, 'class' => true );
+                $allowed['caption'] = $table_attrs;
+                if ( isset( $allowed['td'] ) ) {
+                        $allowed['td']['colspan'] = true;
+                        $allowed['td']['rowspan'] = true;
+                }
+                if ( isset( $allowed['th'] ) ) {
+                        $allowed['th']['colspan'] = true;
+                        $allowed['th']['rowspan'] = true;
+                        $allowed['th']['scope']   = true;
+                }
+
+                /* data-* on images/figures is used by lazy-loaders and lightboxes. */
+                if ( isset( $allowed['img'] ) ) {
+                        $allowed['img']['data-src']    = true;
+                        $allowed['img']['data-srcset'] = true;
+                        $allowed['img']['srcset']      = true;
+                        $allowed['img']['sizes']       = true;
+                        $allowed['img']['loading']     = true;
+                }
+
+                /**
+                 * Filters the extended allowed-tags map.
+                 *
+                 * @param array $allowed wp_kses tag => attribute map.
+                 */
+                $allowed = apply_filters( 'kic_article_allowed_html', $allowed );
+        }
+
+        $html = wp_kses( (string) $html, $allowed );
+
+        /* iframes must still point at a real http(s) URL — wp_kses allows the
+         * attribute but not the scheme check on sandboxed values. */
+        $html = preg_replace_callback(
+                '/<iframe\b[^>]*\bsrc\s*=\s*["\']([^"\']*)["\']/i',
+                function ( $m ) {
+                        $scheme = wp_parse_url( html_entity_decode( $m[1] ), PHP_URL_SCHEME );
+                        return in_array( $scheme, array( 'http', 'https' ), true ) ? $m[0] : '';
+                },
+                $html
+        );
+
+        return $html;
+}
 
 KIC_Plugin::instance();
