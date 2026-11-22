@@ -235,6 +235,12 @@ final class KIC_Metabox {
                                 ? KIC_Generator::availability()
                                 : array( 'enabled' => false, 'configured' => false ),
                         'imageModel'   => (string) kic_get_setting( 'image_model', '' ),
+                        /* v2.9 — per-run model picker on the compose panel:
+                         * base URL is needed client-side only to ask
+                         * kic_list_provider_models for the live list; the
+                         * stored key is reused server-side when it matches. */
+                        'providerBase' => (string) kic_get_setting( 'base_url', '' ),
+                        'defaultModel' => (string) kic_get_setting( 'model', '' ),
                         'i18n'         => ( class_exists( 'KIC_I18n' ) && method_exists( 'KIC_I18n', 'js_package' ) )
                                 ? KIC_I18n::js_package()
                                 : array( 'lang' => 'fa', 'dict' => array() ),

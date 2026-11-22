@@ -299,9 +299,16 @@ final class KIC_Generator {
                         ),
                 );
 
+                /* Per-run model override from the compose model picker —
+                 * sanitized, capped, never persisted. */
+                $model_override = isset( $params['model'] ) ? sanitize_text_field( (string) $params['model'] ) : '';
+                if ( function_exists( 'mb_strlen' ) && mb_strlen( $model_override, 'UTF-8' ) > 120 ) {
+                        $model_override = mb_substr( $model_override, 0, 120, 'UTF-8' );
+                }
+
                 $result = KIC_API_Client::instance()->chat(
                         $messages,
-                        $this->gen_args(),
+                        $this->gen_args( $model_override ),
                         array(
                                 'action' => 'generate',
                         )
@@ -447,11 +454,13 @@ final class KIC_Generator {
 
         /**
          * Call args for generation: warm temperature, a completion window
-         * sized for a full article, model chosen through the router.
+         * sized for a full article, model chosen through the router — unless
+         * the author picked a per-run model in the compose picker.
          *
+         * @param string $model_override Optional per-request model id.
          * @return array
          */
-        private function gen_args() {
+        private function gen_args( $model_override = '' ) {
                 $setting = (int) kic_get_setting( 'max_tokens', 4096 );
                 $max_tokens = (int) apply_filters( 'kic_generate_max_tokens', min( 16000, max( $setting, 8000 ) ), $setting );
 
@@ -461,7 +470,9 @@ final class KIC_Generator {
                 );
 
                 $model = '';
-                if ( class_exists( 'KIC_Router' ) && method_exists( 'KIC_Router', 'model_for' ) ) {
+                if ( '' !== $model_override ) {
+                        $model = $model_override;
+                } elseif ( class_exists( 'KIC_Router' ) && method_exists( 'KIC_Router', 'model_for' ) ) {
                         $model = KIC_Router::model_for( 'generate', (string) kic_get_setting( 'model' ) );
                 } else {
                         $model = (string) kic_get_setting( 'model' );

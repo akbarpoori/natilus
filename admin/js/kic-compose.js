@@ -1109,6 +1109,29 @@
 
                 els.genSlugEn = h('input', { type: 'checkbox', class: 'kic-check', id: 'kic-f-gen-slug-en', value: '1', checked: true });
 
+                /* Per-run model picker: the dropdown is populated from the
+                 * configured provider's /models endpoint (stored key reused
+                 * server-side). Empty value = the settings default. */
+                els.genModel = h('select', {
+                        class: 'kic-input',
+                        id: 'kic-f-gen-model',
+                        dir: 'ltr',
+                        style: 'max-width:320px;text-align:left'
+                }, [h('option', { value: '', text: T('پیش‌فرض تنظیمات') + (KIC.defaultModel ? ' — ' + KIC.defaultModel : '') })]);
+                els.genModelStatus = h('span', { class: 'kic-muted', style: 'font-size:11px' });
+                els.btnModelLoad = h('button', {
+                        class: 'kic-btn kic-btn--ghost kic-btn--sm',
+                        type: 'button',
+                        onclick: function () { loadProviderModels(true); },
+                        title: T('فهرست مدل‌های ارائه‌دهنده را دوباره بخوان')
+                }, [T('↻ مدل‌ها')]);
+                var genModelRow = configured ? h('div', { class: 'kic-checks', style: 'align-items:center;gap:8px' }, [
+                        h('span', { class: 'kic-muted', text: T('مدل:') }),
+                        els.genModel,
+                        els.btnModelLoad,
+                        els.genModelStatus
+                ]) : null;
+
                 els.btnGenerate = h('button', {
                         class: 'kic-btn kic-btn--primary',
                         type: 'button',
@@ -1134,6 +1157,7 @@
                                 checkRow(els.genImage, T('تولید تصویر با هوش مصنوعی')),
                                 checkRow(els.genSlugEn, T('نامک URL را به انگلیسی بساز'))
                         ]),
+                        genModelRow,
                         h('div', { class: 'kic-actions' }, [els.btnGenerate]),
                         h('div', { class: 'kic-statusline' }, [els.genSpinner, els.genStatus])
                 ]);
@@ -1178,6 +1202,11 @@
 
                 els.genBox.appendChild(els.genStep1);
                 els.genBox.appendChild(els.genStep2);
+                if (configured) {
+                        /* Warm the model dropdown from the provider /models
+                         * list — cached server-side, so cheap. */
+                        loadProviderModels(false);
+                }
                 return els.genBox;
         }
 
@@ -1253,6 +1282,39 @@
          *
          * @return {void}
          */
+        /**
+         * Fill the compose model picker from the configured provider's
+         * /models endpoint (kic_list_provider_models reuses the stored key
+         * when the base URL matches settings). First option stays «default».
+         *
+         * @param {boolean} refresh Skip the server transient cache.
+         */
+        async function loadProviderModels(refresh) {
+                if (!els.genModel) { return; }
+                var base = String(KIC.providerBase || '').trim();
+                if (!base) {
+                        els.genModelStatus.textContent = T('ارائه‌دهنده تنظیم نشده');
+                        return;
+                }
+                els.genModelStatus.textContent = T('در حال خواندن مدل‌ها…');
+                try {
+                        var params = { base_url: base };
+                        if (refresh) { params.refresh = 1; }
+                        var data = await post('kic_list_provider_models', params);
+                        var models = (data && data.models && data.models.length) ? data.models : ((data && data.fallback) || []);
+                        /* Keep the default option, rebuild the rest. */
+                        while (els.genModel.options.length > 1) { els.genModel.remove(1); }
+                        models.forEach(function (m) {
+                                els.genModel.appendChild(h('option', { value: String(m), text: String(m) }));
+                        });
+                        els.genModelStatus.textContent = models.length
+                                ? models.length + ' ' + T('مدل یافت شد') + ((data && data.message) ? ' — ' + data.message : '')
+                                : T('مدلی یافت نشد — پیش‌فرض استفاده می‌شود');
+                } catch (err) {
+                        els.genModelStatus.textContent = err && err.message ? err.message : T('خطا در خواندن مدل‌ها');
+                }
+        }
+
         async function runGenerate() {
                 if (state.working || !els.genPrompt) {
                         return;
@@ -1260,7 +1322,9 @@
                 var prompt = (els.genPrompt.value || '').trim();
                 var source = els.raw ? (els.raw.value || '') : '';
                 if (source.trim().length < 20) {
-                        toast(T('متن را در باکس «محتوای کامل نوشته» بچسبانید — Natilus فقط محتوای شما را می‌چیند و چیزی از خودش تولید نمی‌کند.'), 'info');
+                        var noSrcMsg = T('متن را در باکس «محتوای کامل نوشته» بچسبانید — Natilus فقط محتوای شما را می‌چیند و چیزی از خودش تولید نمی‌کند.');
+                        if (els.genStatus) { els.genStatus.textContent = '✕ ' + noSrcMsg; }
+                        toast(noSrcMsg, 'info');
                         els.raw.focus();
                         return;
                 }
@@ -1280,7 +1344,8 @@
                                  * ORGANIZES it (چینش) instead of writing
                                  * from scratch — matches the reference UX. */
                                 content: source,
-                                builder_mode: (els.builderMode && els.builderMode.value) || 'auto'
+                                builder_mode: (els.builderMode && els.builderMode.value) || 'auto',
+                                model: (els.genModel && els.genModel.value) || ''
                         });
 
                         var article = (data && data.article) ? data.article : data;
@@ -1326,8 +1391,11 @@
                                 await runGenerateImage(prompt, article);
                         }
                 } catch (err) {
-                        els.genStatus.textContent = '';
-                        toast(err.message || T('تولید مقاله ناموفق بود.'), 'error');
+                        /* Show the failure inline too — toasts fade quickly
+                         * and are easy to miss. */
+                        var msg = (err && err.message) ? err.message : T('تولید مقاله ناموفق بود.');
+                        els.genStatus.textContent = '✕ ' + msg;
+                        toast(msg, 'error');
                 } finally {
                         state.working = false;
                         els.genSpinner.classList.add('kic-hidden');
