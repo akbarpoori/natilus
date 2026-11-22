@@ -207,6 +207,7 @@ if ( ! function_exists( 'kic_default_settings' ) ) {
                         // v2.3.0 — OPTIONAL prompt-based edit of the current post.
                         'related_posts'              => 0,
                         'smart_links'                => 0,
+                        'smart_links_max'            => 3,
                         'og_card'                    => 0,
                         'og_font_path'               => '',
                         'ai_edit_enabled'            => 1,

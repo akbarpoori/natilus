@@ -123,7 +123,7 @@ class KIC_Content_Extras {
                 }
 
                 $used   = 0;
-                $max    = 3;
+                $max    = max( 1, min( 10, absint( kic_get_setting( 'smart_links_max', 3 ) ) ) );
                 $result = preg_replace_callback(
                         '/<p\b[^>]*>(.*?)<\/p>/is',
                         function ( $m ) use ( $targets, &$used, $max ) {
@@ -132,17 +132,23 @@ class KIC_Content_Extras {
                                         if ( $used >= $max ) {
                                                 break;
                                         }
-                                        /* Skip when already linked or inside a heading elsewhere. */
                                         if ( false === mb_strpos( $inner, $t['title'] ) || false !== strpos( $inner, 'href="' . $t['url'] . '"' ) ) {
                                                 continue;
                                         }
-                                        $inner = preg_replace(
-                                                '/' . preg_quote( $t['title'], '/' ) . '/u',
-                                                '<a href="' . esc_url( $t['url'] ) . '">' . $t['title'] . '</a>',
-                                                $inner,
-                                                1
-                                        );
-                                        $used++;
+                                        /* Only link text OUTSIDE existing anchors — never nest <a> in <a>. */
+                                        $segs = preg_split( '/(<a\b.*?<\/a>)/is', $inner, -1, PREG_SPLIT_DELIM_CAPTURE );
+                                        foreach ( (array) $segs as $si => $seg ) {
+                                                if ( 1 === ( $si % 2 ) || false === mb_strpos( $seg, $t['title'] ) ) {
+                                                        continue;
+                                                }
+                                                $pos = mb_strpos( $seg, $t['title'] );
+                                                $segs[ $si ] = mb_substr( $seg, 0, $pos )
+                                                        . '<a href="' . esc_url( $t['url'] ) . '">' . esc_html( $t['title'] ) . '</a>'
+                                                        . mb_substr( $seg, $pos + mb_strlen( $t['title'] ) );
+                                                $inner = implode( '', $segs );
+                                                $used++;
+                                                break;
+                                        }
                                 }
                                 return '<p' . substr( $m[0], 2, strpos( $m[0], '>' ) - 1 ) . $inner . '</p>';
                         },

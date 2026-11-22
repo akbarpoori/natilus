@@ -337,7 +337,11 @@ $kic_fa_num = function ( $n ) { return number_format( (float) $n ); };
                                         </label>
                                         <label class="kic-check">
                                                 <input type="checkbox" name="kic_settings[smart_links]" value="1" <?php checked( ! empty( $kic_settings['smart_links'] ) ); ?> />
-                                                <span>لینک‌سازی هوشمند خودکار — عنوان نوشته‌های دیگر داخل متن به لینک تبدیل می‌شود (غیرمخرب: محتوای ذخیره‌شده دست نمی‌خورد، حداکثر ۳ لینک)</span>
+                                                <span>لینک‌سازی هوشمند خودکار — عنوان نوشته‌های دیگر داخل متن به لینک تبدیل می‌شود (غیرمخرب: محتوای ذخیره‌شده دست نمی‌خورد)</span>
+                                        </label>
+                                        <label class="kic-check">
+                                                حداکثر لینک داخلی در هر نوشته:
+                                                <input type="number" name="kic_settings[smart_links_max]" min="1" max="10" step="1" style="width:64px" value="<?php echo esc_attr( (string) kic_get_setting( 'smart_links_max', 3 ) ); ?>" />
                                         </label>
                                         <label class="kic-check">
                                                 <input type="checkbox" name="kic_settings[og_card]" value="1" <?php checked( ! empty( $kic_settings['og_card'] ) ); ?> />

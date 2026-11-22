@@ -287,6 +287,10 @@ final class KIC_Settings {
                         ? sanitize_text_field( (string) $incoming['og_font_path'] )
                         : (string) ( isset( $current['og_font_path'] ) ? $current['og_font_path'] : '' );
 
+                $clean['smart_links_max'] = isset( $incoming['smart_links_max'] )
+                        ? max( 1, min( 10, absint( $incoming['smart_links_max'] ) ) )
+                        : 3;
+
                 /* v2.4 — image-generation model override ('' = reuse the
                  * provider's own model slot). Sanitized like any model name. */
                 $clean['image_model'] = isset( $incoming['image_model'] )
